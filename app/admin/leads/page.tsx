@@ -107,18 +107,22 @@ export default function AdminLeadsPage() {
     e.preventDefault();
     setFormError(null);
     if (!formData.title) return;
-    if (editingId) {
-      const updated = await updateLeadApi(editingId, formData);
-      if (!updated) {
-        setFormError('Update failed. Please try again.');
-        return;
+    try {
+      if (editingId) {
+        const updated = await updateLeadApi(editingId, formData);
+        if (!updated) {
+          setFormError('Update failed. Please try again.');
+          return;
+        }
+      } else {
+        await addLead(formData as any);
       }
-    } else {
-      await addLead(formData as any);
+      setFormData({ ...emptyForm });
+      setRawMessage('');
+      setEditingId(null);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to save lead.');
     }
-    setFormData({ ...emptyForm });
-    setRawMessage('');
-    setEditingId(null);
   };
 
   const startEdit = (lead: Lead) => {
@@ -138,14 +142,18 @@ export default function AdminLeadsPage() {
     setFormData({ ...emptyForm });
   };
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = async (id: string) => {
     if (confirmDeleteId !== id) {
       setConfirmDeleteId(id);
       setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 3000);
       return;
     }
     setConfirmDeleteId(null);
-    deleteLead(id);
+    try {
+      await deleteLead(id);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to delete lead.');
+    }
   };
 
   const deadlineDateStr = formData.deadline

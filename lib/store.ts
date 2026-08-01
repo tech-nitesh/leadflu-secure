@@ -18,7 +18,7 @@ interface AppState {
   unsaveLead: (leadId: string) => void;
   addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => Promise<Lead | null>;
   updateLeadApi: (id: string, updates: Partial<Lead>) => Promise<Lead | null>;
-  deleteLead: (id: string) => void;
+  deleteLead: (id: string) => Promise<void>;
   setLeads: (leads: Lead[]) => void;
   fetchLeadsFromApi: () => Promise<void>;
   setSpreadsheetId: (id: string) => void;
@@ -155,28 +155,30 @@ export const useStore = create<AppState>()(
       addLead: async (lead) => {
         const token = await getFirebaseIdToken();
         if (token) {
-          try {
-            const res = await fetch('/api/leads', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(lead),
-            });
-            if (res.status === 401 || res.status === 403) {
-              throw new Error('You do not have permission to create leads.');
-            }
-            if (res.ok) {
+          const res = await fetch('/api/leads', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(lead),
+          });
+          if (!res.ok) {
+            let message = `Failed to create lead (${res.status}).`;
+            try {
               const data = await res.json();
-              if (data.success && data.lead) {
-                set((state) => ({ leads: [data.lead, ...state.leads] }));
-                return data.lead;
-              }
+              if (data?.error) message = data.error;
+            } catch {
+              // ignore
             }
-          } catch (error) {
-            if (error instanceof Error && error.message.includes('permission')) throw error;
+            throw new Error(message);
           }
+          const data = await res.json();
+          if (data?.success && data?.lead) {
+            set((state) => ({ leads: [data.lead, ...state.leads] }));
+            return data.lead;
+          }
+          throw new Error('Failed to create lead.');
         }
         const cleanedTitle = (lead.title || 'Untitled Opportunity').trim();
         const cleanedDesc = (lead.description || 'No description provided.').trim();
@@ -225,9 +227,28 @@ export const useStore = create<AppState>()(
         }
         return null;
       },
-      deleteLead: (id) => set((state) => ({
-        leads: state.leads.filter(l => l.id !== id)
-      })),
+      deleteLead: async (id) => {
+        const token = await getFirebaseIdToken();
+        if (token) {
+          const res = await fetch(`/api/leads/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            let message = `Failed to delete lead (${res.status}).`;
+            try {
+              const data = await res.json();
+              if (data?.error) message = data.error;
+            } catch {
+              // ignore
+            }
+            throw new Error(message);
+          }
+        }
+        set((state) => ({
+          leads: state.leads.filter(l => l.id !== id)
+        }));
+      },
       setLeads: (leads) => set({ leads }),
       setSpreadsheetId: (id) => set({ spreadsheetId: id }),
     }),

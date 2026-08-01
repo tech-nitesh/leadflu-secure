@@ -22,7 +22,16 @@ try {
   console.error('Failed to initialize Firebase Admin:', error);
 }
 
+const firestoreInstance = app && configured ? admin.firestore(app) : null;
+if (firestoreInstance) {
+  try {
+    firestoreInstance.settings({ ignoreUndefinedProperties: true });
+  } catch (error) {
+    console.error('Failed to configure Firestore settings:', error);
+  }
+}
+
 export const adminApp = app;
 export const isServerConfigured = configured;
-export const adminDb = app && configured ? admin.firestore(app) : null;
+export const adminDb = firestoreInstance;
 export const adminAuth = app && configured ? admin.auth(app) : null;
