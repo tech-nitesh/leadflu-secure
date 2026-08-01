@@ -22,10 +22,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   React.useEffect(() => {
     let cancelled = false;
-    (async () => {
+    let attempts = 0;
+
+    const check = async () => {
       const token = await getFirebaseIdToken();
+      if (cancelled) return;
       if (!token) {
-        if (!cancelled) setServerChecked(true);
+        // Firebase auth may still be restoring the session after a refresh.
+        attempts += 1;
+        if (attempts >= 20) {
+          setServerChecked(true);
+          return;
+        }
+        setTimeout(check, 250);
         return;
       }
       try {
@@ -48,11 +57,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setServerChecked(true);
         }
       }
-    })();
+    };
+
+    check();
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.email]);
+  }, [currentUser?.email, currentUser?.id]);
 
   if (!isMounted || !serverChecked) {
     return <div className="p-6">Loading...</div>;
@@ -91,6 +102,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-950 flex items-center justify-center text-sm">EL</span>
             Admin Pro
           </h1>
+          <button 
+            onClick={() => router.push('/')}
+            className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/50"
+            aria-label="Exit admin"
+          >
+            <LogOut className="w-4 h-4" />
+            Exit
+          </button>
         </div>
         
         <nav className="flex-1 lg:flex-none lg:block overflow-x-auto lg:overflow-visible p-2 lg:p-4 flex lg:flex-col gap-1 lg:space-y-1">
