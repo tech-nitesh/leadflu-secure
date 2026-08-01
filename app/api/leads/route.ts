@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticate, requireAdmin } from '@/lib/server/auth';
+import { authenticateOrGuest, requireAdmin } from '@/lib/server/auth';
 import { isServerConfigured } from '@/lib/server/firebase-admin';
 import { listLeads, createLead } from '@/lib/server/leads';
 
@@ -13,8 +13,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const ctx = await authenticate(req);
-  if (ctx instanceof NextResponse) return ctx;
+  const ctx = await authenticateOrGuest(req);
 
   try {
     const leads = await listLeads(ctx);

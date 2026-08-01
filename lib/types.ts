@@ -8,6 +8,7 @@ export type LeadType = 'HOT' | 'FEATURED' | 'FREE' | 'PRO';
 export interface User {
   id: string;
   name: string | null;
+  username?: string | null;
   email: string | null;
   avatar: string | null;
   role: Role;

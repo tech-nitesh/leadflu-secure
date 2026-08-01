@@ -10,7 +10,7 @@ interface AppState {
   leads: Lead[];
   spreadsheetId: string | null;
   setCurrentUser: (user: User | null) => void;
-  applyServerProfile: (uid: string, role: Role, plan: Plan) => void;
+  applyServerProfile: (uid: string, role: Role, plan: Plan, username?: string | null, name?: string | null) => void;
   updateUserRolePlan: (userId: string, role: Role, plan: Plan) => void;
   saveLead: (leadId: string) => void;
   unsaveLead: (leadId: string) => void;
@@ -48,10 +48,16 @@ export const useStore = create<AppState>()(
           return { currentUser: newUser, users: [...state.users, newUser] };
         }
       }),
-      applyServerProfile: (uid, role, plan) => set((state) => {
+      applyServerProfile: (uid, role, plan, username, name) => set((state) => {
         const current = state.currentUser;
         if (!current || current.id !== uid) return state;
-        const updated: User = { ...current, role, plan };
+        const updated: User = {
+          ...current,
+          role,
+          plan,
+          username: username !== undefined ? username : current.username,
+          name: name !== undefined ? name : current.name,
+        };
         return {
           currentUser: updated,
           users: state.users.map(u => u.id === uid ? updated : u),

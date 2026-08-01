@@ -1,24 +1,47 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { LeadFluLogo } from '@/components/logo';
 import { Users, FileText, TrendingUp, Zap } from 'lucide-react';
+import { getFirebaseIdToken } from '@/lib/firebase';
 
 export default function AdminOverview() {
-  const { users, leads } = useStore();
+  const { leads } = useStore();
   const [isMounted, setIsMounted] = React.useState(false);
+  const [totalUsers, setTotalUsers] = React.useState(0);
+  const [proUsers, setProUsers] = React.useState(0);
 
   React.useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
     return () => cancelAnimationFrame(handle);
   }, []);
 
+  React.useEffect(() => {
+    if (!isMounted) return;
+    (async () => {
+      const token = await getFirebaseIdToken();
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.users || [];
+        setTotalUsers(list.length);
+        setProUsers(list.filter((u: { plan: string }) => u.plan === 'PRO').length);
+      } catch {
+        // Stats are best-effort
+      }
+    })();
+  }, [isMounted]);
+
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
   const stats = [
-    { label: 'Total Users', value: users.length, icon: Users },
-    { label: 'Pro Users', value: users.filter(u => u.plan === 'PRO').length, icon: Zap },
+    { label: 'Total Users', value: totalUsers, icon: Users },
+    { label: 'Pro Users', value: proUsers, icon: Zap },
     { label: 'Active Leads', value: leads.filter(l => l.status === 'Active').length, icon: FileText },
     { label: 'Total Leads', value: leads.length, icon: TrendingUp },
   ];

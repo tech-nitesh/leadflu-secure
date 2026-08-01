@@ -12,6 +12,8 @@ export async function GET(req: NextRequest) {
     user: {
       uid: ctx.user.uid,
       email: ctx.user.email,
+      username: ctx.username || null,
+      name: ctx.name || null,
       role: ctx.role,
       plan: ctx.plan,
     },

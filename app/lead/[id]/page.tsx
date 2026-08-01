@@ -8,6 +8,7 @@ import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap } from 'luc
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getSanitizedLead, canAccessLeadContact } from '@/lib/security';
+import { whatsappLink } from '@/lib/whatsapp';
 
 export default function LeadDetailPage() {
   const { id } = useParams();
@@ -167,10 +168,23 @@ export default function LeadDetailPage() {
                   <Lock className="w-8 h-8" />
                 </div>
                 <h4 className="font-bold text-lg mb-2">Pro Member Only</h4>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Upgrade your account to view the client&apos;s contact details and apply directly.</p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-blue-500/25" onClick={() => router.push('/profile')}>
-                  Upgrade to Pro
-                </Button>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Unlock this lead&apos;s contact details by requesting a PRO membership.</p>
+                {(() => {
+                  const wa = whatsappLink(
+                    `Hi Nitesh, I want to access PRO membership and unlock this lead. Lead ID: ${lead.id} - ${lead.title}`
+                  );
+                  return wa ? (
+                    <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-green-500/25">
+                      <a href={wa} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="w-5 h-5 mr-2" /> Unlock on WhatsApp
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-blue-500/25" onClick={() => router.push('/profile')}>
+                      Upgrade to Pro
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           )}

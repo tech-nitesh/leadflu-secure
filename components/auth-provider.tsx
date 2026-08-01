@@ -10,9 +10,11 @@ import { useStore } from '@/lib/store';
 import { User as AppUser } from '@/lib/types';
 
 function toAppUser(user: { uid: string; displayName: string | null; email: string | null; photoURL: string | null }): AppUser {
+  const username = user.email?.toLowerCase().replace(/@leadflu\.app$/, '') || null;
   return {
     id: user.uid,
     name: user.displayName,
+    username,
     email: user.email,
     avatar: user.photoURL,
     role: 'Guest',
@@ -36,7 +38,7 @@ async function syncServerProfile() {
       const store = useStore.getState();
       const current = store.currentUser;
       if (current && current.id === data.user.uid) {
-        store.applyServerProfile(data.user.uid, data.user.role, data.user.plan);
+        store.applyServerProfile(data.user.uid, data.user.role, data.user.plan, data.user.username, data.user.name);
       }
     }
   } catch {
