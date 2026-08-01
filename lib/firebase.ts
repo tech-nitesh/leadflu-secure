@@ -144,7 +144,7 @@ export const logout = async () => {
   await auth.signOut();
 };
 
-export function getAuthErrorMessage(error: any): string {
+export function getAuthErrorMessage(error: any, opts?: { usernameLogin?: boolean }): string {
   switch (error?.code) {
     case 'auth/popup-blocked':
       return 'Sign-in popup was blocked by the browser. Allow popups for this site and try again.';
@@ -163,7 +163,7 @@ export function getAuthErrorMessage(error: any): string {
     case 'auth/account-exists-with-different-credential':
       return 'An account with this email already exists using a different sign-in method.';
     case 'auth/invalid-email':
-      return 'Enter a valid email address.';
+      return opts?.usernameLogin ? 'Invalid username or password.' : 'Enter a valid email address.';
     case 'auth/user-disabled':
       return 'This account has been disabled. Contact the admin.';
     case 'auth/invalid-credential':

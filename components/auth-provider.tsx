@@ -13,7 +13,7 @@ function toAppUser(user: { uid: string; displayName: string | null; email: strin
   const username = user.email?.toLowerCase().replace(/@leadflu\.app$/, '') || null;
   return {
     id: user.uid,
-    name: user.displayName,
+    name: user.displayName || username,
     username,
     email: user.email,
     avatar: user.photoURL,

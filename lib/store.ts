@@ -31,17 +31,25 @@ export const useStore = create<AppState>()(
       spreadsheetId: null,
       setCurrentUser: (user) => set((state) => {
         if (!user) return { currentUser: null };
-        const existing = state.users.find(u => u.email === user.email);
+        const existing = state.users.find(u => u.email === user.email || u.id === user.id);
         if (existing) {
+          const merged: User = {
+            ...existing,
+            ...user,
+            role: existing.role === 'Admin' || user.role === 'Admin' ? 'Admin' : existing.role,
+            plan: existing.plan === 'PRO' || user.plan === 'PRO' ? 'PRO' : existing.plan,
+            savedLeads: existing.savedLeads ?? [],
+            unlockedLeads: existing.unlockedLeads ?? [],
+          };
           return {
-            currentUser: existing,
-            users: state.users.map(u => u.id === existing.id ? existing : u)
+            currentUser: merged,
+            users: state.users.map(u => u.id === existing.id ? merged : u)
           };
         } else {
           const newUser: User = {
             ...user,
-            role: 'Guest',
-            plan: 'FREE',
+            role: user.role || 'Guest',
+            plan: user.plan || 'FREE',
             savedLeads: [],
             unlockedLeads: [],
           };

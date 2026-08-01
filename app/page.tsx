@@ -47,7 +47,7 @@ export default function Home() {
           </Link>
           <div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Welcome back</p>
-            <p className="font-semibold text-sm">{currentUser?.name || 'Guest User'}</p>
+            <p className="font-semibold text-sm">{currentUser?.name || currentUser?.username || 'Guest User'}</p>
           </div>
         </div>
         <div className="flex gap-2 items-center">

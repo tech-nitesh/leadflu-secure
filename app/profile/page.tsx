@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { loginWithUsername, logout, getAuthErrorMessage } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { UserCircle2, LogOut, Shield, Crown, LifeBuoy } from 'lucide-react';
 
 export default function Profile() {
   const { currentUser, setCurrentUser } = useStore();
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +35,7 @@ export default function Profile() {
       const user = await loginWithUsername(username, password);
       setCurrentUser({
         id: user.uid,
-        name: user.displayName,
+        name: user.displayName || user.email?.toLowerCase().replace(/@leadflu\.app$/, '') || null,
         username: user.email?.toLowerCase().replace(/@leadflu\.app$/, ''),
         email: user.email,
         avatar: null,
@@ -42,9 +44,10 @@ export default function Profile() {
         savedLeads: [],
         unlockedLeads: []
       });
+      router.push('/');
     } catch (err) {
       console.error('Login failed:', err);
-      setLoginError(getAuthErrorMessage(err));
+      setLoginError(getAuthErrorMessage(err, { usernameLogin: true }));
     } finally {
       setIsLoggingIn(false);
     }

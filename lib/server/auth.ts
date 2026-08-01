@@ -84,6 +84,11 @@ async function resolveRoleAndPlan(
     }
   }
 
+  if (isSeedAdmin(email)) {
+    if (!username) username = getAdminUsername();
+    if (!name) name = 'Admin';
+  }
+
   roleCache.set(uid, { role, plan, username, name, at: Date.now() });
   return { role, plan, username, name };
 }
