@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -111,7 +112,18 @@ export async function exchangeCustomToken(customToken) {
   return { idToken: json.idToken, uid };
 }
 
-export async function adminLogin() {
+const TOKEN_CACHE_PATH = path.join(os.tmpdir(), 'leadflu-admin-token.json');
+
+// /api/login is rate-limited (5 attempts/min), and node --test runs files in
+// parallel. Cache the admin idToken to a temp file (60s TTL) so the whole suite
+// shares ONE login instead of hammering the endpoint from every file.
+async function cachedAdminLogin() {
+  try {
+    const cached = JSON.parse(readFileSync(TOKEN_CACHE_PATH, 'utf8'));
+    if (cached?.idToken && typeof cached.idToken === 'string' && Date.now() - cached.at < 60_000) {
+      return cached.idToken;
+    }
+  } catch {}
   const { status, json } = await api('/api/login', {
     method: 'POST',
     body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
@@ -119,7 +131,17 @@ export async function adminLogin() {
   if (status !== 200 || !json?.customToken) {
     throw new Error(`adminLogin failed (${status}): ${JSON.stringify(json)}`);
   }
-  return exchangeCustomToken(json.customToken);
+  const { idToken } = await exchangeCustomToken(json.customToken);
+  try {
+    writeFileSync(TOKEN_CACHE_PATH, JSON.stringify({ idToken, at: Date.now() }), 'utf8');
+  } catch {}
+  return idToken;
+}
+
+export async function adminLogin() {
+  const idToken = await cachedAdminLogin();
+  const decoded = await admin().auth().verifyIdToken(idToken);
+  return { idToken, uid: decoded.uid };
 }
 
 export async function createFixtureUser({ username, password, plan = 'FREE', name } = {}) {

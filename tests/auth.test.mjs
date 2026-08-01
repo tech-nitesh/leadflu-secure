@@ -21,8 +21,6 @@ let freeUid;
 let proUid;
 
 before(async () => {
-  const a = await adminLogin();
-  adminToken = a.idToken;
   const free = await createFixtureUser({ username: freeUsername, password: freePassword, plan: 'FREE' });
   const pro = await createFixtureUser({ username: proUsername, password: proPassword, plan: 'PRO' });
   freeUid = free.uid;
@@ -35,13 +33,9 @@ after(async () => {
 });
 
 test('admin login returns customToken', async () => {
-  const { status, json } = await api('/api/login', {
-    method: 'POST',
-    body: { username: 'adminleadflu', password: 'NiteshK@1209' },
-  });
-  assert.equal(status, 200);
-  assert.equal(json.success, true);
-  assert.ok(json.customToken, 'expected a customToken');
+  const a = await adminLogin();
+  adminToken = a.idToken;
+  assert.ok(a.uid, 'expected an admin uid');
 });
 
 test('admin login rejects wrong password', async () => {

@@ -49,11 +49,17 @@ export default function SearchPage() {
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
   let filteredLeads = leads.filter(l => {
-    const matchesQuery = l.title.toLowerCase().includes(query.toLowerCase()) || l.description.toLowerCase().includes(query.toLowerCase());
-    const matchesPlatform = selectedPlatform === 'All' || l.platform === selectedPlatform;
-    const matchesCategory = selectedCategory === 'All' || l.category === selectedCategory;
+    const q = query.toLowerCase();
+    const matchesQuery = l.title.toLowerCase().includes(q) || l.description.toLowerCase().includes(q) || l.platform.toLowerCase().includes(q) || l.category.toLowerCase().includes(q);
+    const matchesPlatform = selectedPlatform === 'All' || l.platform.toLowerCase() === selectedPlatform.toLowerCase();
+    const matchesCategory = selectedCategory === 'All' || l.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesQuery && matchesPlatform && matchesCategory;
   });
+
+  const allPlatforms: (Platform | 'All')[] = (['All', ...PLATFORMS, ...leads.map(l => l.platform)] as (Platform | 'All')[])
+    .filter((p, i, arr) => arr.findIndex(x => x.toLowerCase() === p.toLowerCase()) === i);
+  const allCategories: (Category | 'All')[] = (['All', ...CATEGORIES, ...leads.map(l => l.category)] as (Category | 'All')[])
+    .filter((c, i, arr) => arr.findIndex(x => x.toLowerCase() === c.toLowerCase()) === i);
 
   filteredLeads = [...filteredLeads].sort((a, b) => {
     if (sort === 'budget_high') return (b.budgetNumeric || 0) - (a.budgetNumeric || 0);
@@ -87,7 +93,7 @@ export default function SearchPage() {
         </div>
 
         <div className="flex overflow-x-auto hide-scrollbar gap-2 mt-4 pb-2" style={{ scrollbarWidth: 'none' }}>
-          {(['All', ...PLATFORMS] as const).map(p => (
+          {allPlatforms.map(p => (
             <Badge 
               key={p} 
               variant={selectedPlatform === p ? 'default' : 'secondary'} 
@@ -108,7 +114,7 @@ export default function SearchPage() {
             <div>
               <p className="text-xs font-semibold text-zinc-500 mb-2">Category</p>
               <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-1" style={{ scrollbarWidth: 'none' }}>
-                {(['All', ...CATEGORIES] as const).map(c => (
+                {allCategories.map(c => (
                   <Badge
                     key={c}
                     variant={selectedCategory === c ? 'default' : 'secondary'}

@@ -12,6 +12,14 @@ import { Lead } from '@/lib/types';
 import { format } from 'date-fns';
 import { getFirebaseIdToken } from '@/lib/firebase';
 
+const PLATFORMS = ['YouTube', 'Instagram', 'TikTok', 'Podcast', 'Corporate', 'Other'];
+const CATEGORIES = ['Shorts', 'Long Form', 'Vlog', 'Documentary', 'Commercial', 'Other'];
+const LEAD_TYPES = ['HOT', 'FEATURED', 'FREE', 'PRO'];
+
+function toWebsite(socialLinks?: string[]): string {
+  return Array.isArray(socialLinks) && socialLinks.length > 0 ? socialLinks[0] : '';
+}
+
 export default function AdminLeadsPage() {
   const { leads, addLead, updateLeadApi, deleteLead } = useStore();
   const [isMounted, setIsMounted] = useState(false);
@@ -32,9 +40,8 @@ export default function AdminLeadsPage() {
     softwareRequired: [],
     leadType: 'FREE',
     accessType: 'FREE',
-    contactDetails: { email: '' },
+    contactDetails: { email: '', whatsapp: '', socialLinks: [] },
     status: 'Active',
-    deadline: undefined,
   });
   const [formData, setFormData] = useState<Partial<Lead>>(emptyForm);
 
@@ -79,19 +86,26 @@ export default function AdminLeadsPage() {
         return;
       }
       if (data.title) {
+        const hasBudget = typeof data.budgetNumeric === 'number' && data.budgetNumeric >= 0;
+        const contactEmail = typeof data.contactEmail === 'string' && data.contactEmail ? data.contactEmail : null;
+        const contactWhatsapp = typeof data.contactWhatsapp === 'string' && data.contactWhatsapp ? data.contactWhatsapp : null;
+        const website = typeof data.website === 'string' && data.website ? data.website : null;
         setFormData(prev => ({
           ...prev,
           title: data.title,
           description: data.description,
-          budgetNumeric: data.budgetNumeric,
-          budgetString: data.budgetString,
+          ...(hasBudget
+            ? { budgetNumeric: data.budgetNumeric, budgetString: data.budgetString || '' }
+            : {}),
           platform: data.platform,
           category: data.category,
           softwareRequired: data.softwareRequired,
           leadType: data.leadType,
           accessType: data.accessType,
           contactDetails: {
-            email: data.contactEmail || prev.contactDetails?.email || '',
+            email: contactEmail || prev.contactDetails?.email || '',
+            whatsapp: contactWhatsapp || prev.contactDetails?.whatsapp || '',
+            socialLinks: website ? [website] : (prev.contactDetails?.socialLinks || []),
           },
         }));
       }
@@ -131,7 +145,9 @@ export default function AdminLeadsPage() {
     setFormData({
       ...lead,
       softwareRequired: Array.isArray(lead.softwareRequired) ? lead.softwareRequired : [],
-      contactDetails: lead.contactDetails || { email: '' },
+      contactDetails: lead.contactDetails
+        ? { email: lead.contactDetails.email || '', whatsapp: lead.contactDetails.whatsapp || '', socialLinks: lead.contactDetails.socialLinks || [] }
+        : { email: '', whatsapp: '', socialLinks: [] },
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -155,12 +171,6 @@ export default function AdminLeadsPage() {
       setFormError(err instanceof Error ? err.message : 'Failed to delete lead.');
     }
   };
-
-  const deadlineDateStr = formData.deadline
-    ? (() => {
-        try { return new Date(formData.deadline).toISOString().slice(0, 10); } catch { return ''; }
-      })()
-    : '';
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -254,11 +264,23 @@ export default function AdminLeadsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Platform</Label>
-                  <Input required value={formData.platform} onChange={e => setFormData({...formData, platform: e.target.value as any})} />
+                  <select
+                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950"
+                    value={formData.platform}
+                    onChange={e => setFormData({...formData, platform: e.target.value as any})}
+                  >
+                    {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Input required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})} />
+                  <select
+                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950"
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value as any})}
+                  >
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
               </div>
 
@@ -270,10 +292,7 @@ export default function AdminLeadsPage() {
                     value={formData.leadType} 
                     onChange={e => setFormData({...formData, leadType: e.target.value as any})}
                   >
-                    <option value="FREE">FREE</option>
-                    <option value="PRO">PRO</option>
-                    <option value="HOT">HOT</option>
-                    <option value="FEATURED">FEATURED</option>
+                    {LEAD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -289,18 +308,20 @@ export default function AdminLeadsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Apply by deadline (optional)</Label>
-                <Input
-                  type="date"
-                  value={deadlineDateStr}
-                  onChange={e => setFormData({...formData, deadline: e.target.value ? new Date(e.target.value + 'T23:59:59').getTime() : undefined})}
-                />
-              </div>
-
-              <div className="space-y-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <Label>Client Email</Label>
-                <Input type="email" required value={formData.contactDetails?.email || ''} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, email: e.target.value }})} />
+              <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <p className="text-sm font-semibold">Client Contact</p>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" required value={formData.contactDetails?.email || ''} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, email: e.target.value }})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone / WhatsApp Number</Label>
+                  <Input value={formData.contactDetails?.whatsapp || ''} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, whatsapp: e.target.value }})} placeholder="+91 98765 43210" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Website / Source Link</Label>
+                  <Input value={toWebsite(formData.contactDetails?.socialLinks)} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, socialLinks: e.target.value.trim() ? [e.target.value.trim()] : [] }})} placeholder="https://..." />
+                </div>
               </div>
 
               {formError && (

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LeadCard } from '@/components/lead-card';
-import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap, Check, Crown, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap, Check, Crown, CalendarClock, Copy, Globe } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getSanitizedLead, canAccessLeadContact } from '@/lib/security';
@@ -21,6 +21,7 @@ export default function LeadDetailPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
+  const [wpCopied, setWpCopied] = useState(false);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -63,15 +64,31 @@ export default function LeadDetailPage() {
     else router.push('/profile');
   };
 
-  const handleCopyEmail = async () => {
+  const copyText = async (text: string, key: 'email' | 'whatsapp') => {
     try {
-      await navigator.clipboard.writeText(lead.contactDetails.email);
-      setEmailCopied(true);
-      setTimeout(() => setEmailCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      if (key === 'email') {
+        setEmailCopied(true);
+        setTimeout(() => setEmailCopied(false), 2000);
+      } else {
+        setWpCopied(true);
+        setTimeout(() => setWpCopied(false), 2000);
+      }
     } catch {
-      window.open(`mailto:${lead.contactDetails.email}`);
+      // clipboard unavailable
     }
   };
+
+  const waHref = (number: string) => {
+    const digits = number.replace(/\D/g, '');
+    if (!digits) return '#';
+    return `https://wa.me/${digits}?text=${encodeURIComponent('Hi, I found your gig on LeadFlu and I would like to apply.')}`;
+  };
+
+  const website =
+    Array.isArray(lead.contactDetails.socialLinks) && lead.contactDetails.socialLinks.length
+      ? lead.contactDetails.socialLinks[0]
+      : '';
 
   const handleShare = () => {
     const url = window.location.href;
@@ -157,31 +174,70 @@ export default function LeadDetailPage() {
           <h3 className="text-lg font-bold mb-4">Contact Information</h3>
           
           <div className={cn("space-y-3", isLocked && "filter blur-[6px] select-none pointer-events-none")}>
-            <div className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+            <a
+              href={`mailto:${lead.contactDetails.email}`}
+              className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm hover:border-blue-400/50 transition-colors"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
                 <Mail className="w-6 h-6" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Email</p>
-                <p className="font-medium text-sm sm:text-base">{lead.contactDetails.email}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Email - tap to open mail app</p>
+                <p className="font-medium text-sm sm:text-base truncate">{lead.contactDetails.email}</p>
               </div>
               {!isLocked && (
-                <Button variant="secondary" size="sm" onClick={handleCopyEmail} className="rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-black/5 dark:border-white/5">
-                  {emailCopied ? 'Copied!' : 'Copy'}
-                </Button>
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyText(lead.contactDetails.email, 'email'); }}
+                  className="rounded-full p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors shrink-0"
+                  aria-label="Copy email"
+                >
+                  {emailCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
               )}
-            </div>
+            </a>
             
             {lead.contactDetails.whatsapp && (
-              <div className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm">
-                <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500">
+              <a
+                href={waHref(lead.contactDetails.whatsapp)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm hover:border-green-400/50 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 shrink-0">
                   <MessageCircle className="w-6 h-6" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">WhatsApp</p>
-                  <p className="font-medium text-sm sm:text-base">{lead.contactDetails.whatsapp}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">WhatsApp - tap to open chat</p>
+                  <p className="font-medium text-sm sm:text-base truncate">{lead.contactDetails.whatsapp}</p>
                 </div>
-              </div>
+                {!isLocked && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyText(lead.contactDetails.whatsapp!, 'whatsapp'); }}
+                    className="rounded-full p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors shrink-0"
+                    aria-label="Copy WhatsApp number"
+                  >
+                    {wpCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                )}
+              </a>
+            )}
+
+            {website && (
+              <a
+                href={website.startsWith('http') ? website : `https://${website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm hover:border-violet-400/50 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-500 shrink-0">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Website / Source</p>
+                  <p className="font-medium text-sm sm:text-base truncate">{website}</p>
+                </div>
+                <span className="text-xs text-violet-500 shrink-0">Open</span>
+              </a>
             )}
           </div>
 

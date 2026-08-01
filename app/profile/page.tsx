@@ -20,7 +20,6 @@ export default function Profile() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [upgradeNote, setUpgradeNote] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
 
@@ -72,14 +71,8 @@ export default function Profile() {
   };
 
   const handleLogout = async () => {
-    if (!confirmLogout) {
-      setConfirmLogout(true);
-      setTimeout(() => setConfirmLogout(false), 3000);
-      return;
-    }
     await logout();
     setCurrentUser(null);
-    setConfirmLogout(false);
   };
 
   const startEditName = () => {
@@ -287,8 +280,8 @@ export default function Profile() {
           </Button>
         )}
 
-        <Button variant="outline" className={`w-full gap-2 rounded-full py-6 mt-4 border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm ${confirmLogout ? 'text-rose-600 bg-rose-50 dark:bg-rose-500/10' : 'text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10'}`} onClick={handleLogout}>
-          <LogOut className="w-4 h-4" /> {confirmLogout ? 'Confirm sign out?' : 'Sign Out'}
+        <Button variant="outline" className={`w-full gap-2 rounded-full py-6 mt-4 border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`} onClick={handleLogout}>
+          <LogOut className="w-4 h-4" /> Sign Out
         </Button>
       </div>
     </main>

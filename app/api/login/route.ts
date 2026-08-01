@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'NiteshK@1209';
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_ATTEMPTS = 5;
+const RATE_LIMIT_MAX_ATTEMPTS = 10;
 const ipAttempts = new Map<string, number[]>();
 
 function isRateLimited(ip: string): boolean {

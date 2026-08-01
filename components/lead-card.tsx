@@ -8,6 +8,7 @@ import { useStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { canAccessLeadContact } from '@/lib/security';
 
 const PlatformIcon = ({ platform, className }: { platform: string, className?: string }) => {
   switch (platform) {
@@ -22,6 +23,7 @@ export function LeadCard({ lead, featured = false }: { lead: Lead, featured?: bo
   const { currentUser, saveLead, unsaveLead } = useStore();
   const router = useRouter();
   const isSaved = currentUser?.savedLeads.includes(lead.id);
+  const isLocked = !canAccessLeadContact(lead, currentUser);
   const [formattedTime, setFormattedTime] = React.useState<string>('');
   const [deadlineText, setDeadlineText] = React.useState<string>('');
 
@@ -112,6 +114,21 @@ export function LeadCard({ lead, featured = false }: { lead: Lead, featured?: bo
         {lead.deadline && (
           <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20 text-xs font-medium">
             <Zap className="w-3 h-3" /> Apply by {deadlineText}
+          </div>
+        )}
+
+        {isLocked && (
+          <div className="mb-4">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/40 dark:border-white/10">
+              <div className="flex-1 space-y-1.5">
+                <div className="h-2.5 w-3/4 rounded-full bg-zinc-300/80 dark:bg-zinc-600/80 blur-[3px]" />
+                <div className="h-2.5 w-1/2 rounded-full bg-zinc-300/80 dark:bg-zinc-600/80 blur-[3px]" />
+              </div>
+              <Lock className="w-4 h-4 text-zinc-400 shrink-0" />
+            </div>
+            <p className="mt-1.5 text-[11px] font-medium text-zinc-500 dark:text-white/50 flex items-center gap-1">
+              <Lock className="w-3 h-3" /> Contact details locked - PRO members only
+            </p>
           </div>
         )}
         
