@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { getAccessToken, signInWithGoogle } from '@/lib/firebase';
+import { getAccessToken, authorizeSheets } from '@/lib/firebase';
 import { pushLeadsToSheet, pullLeadsFromSheet, createSpreadsheet } from '@/lib/google-sheets';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,9 +23,9 @@ export default function SheetsSyncPage() {
   }, []);
 
   React.useEffect(() => {
-    if (spreadsheetId) {
-      setInputSheetId(spreadsheetId);
-    }
+    if (!spreadsheetId) return;
+    const handle = requestAnimationFrame(() => setInputSheetId(spreadsheetId));
+    return () => cancelAnimationFrame(handle);
   }, [spreadsheetId]);
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
@@ -37,12 +37,12 @@ export default function SheetsSyncPage() {
     try {
       let token = await getAccessToken();
       if (!token) {
-        const result = await signInWithGoogle();
+        const result = await authorizeSheets();
         if (result.usedRedirect) {
-          setError("Google sign-in is completing in a redirect. Finish signing in, then retry the sync.");
+          setError("Google Sheets authorization is completing in a redirect. Finish it, then retry the sync.");
           return;
         }
-        if (!result.accessToken) throw new Error("Google sign-in did not return an access token.");
+        if (!result.accessToken) throw new Error("Google Sheets authorization did not return an access token.");
         token = result.accessToken;
       }
       await action();

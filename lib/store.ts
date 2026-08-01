@@ -22,68 +22,26 @@ interface AppState {
   setSpreadsheetId: (id: string) => void;
 }
 
-const DEMO_LEADS: Lead[] = [
-  {
-    id: 'demo-lead-1',
-    title: 'Looking for a skilled editor for 3 YouTube Shorts per week',
-    description: 'Need a fast-paced, high-retention editor for our finance channel. Must know how to use motion graphics and captions effectively.',
-    budgetNumeric: 300,
-    budgetString: '$300/week',
-    currency: 'USD',
-    platform: 'YouTube',
-    category: 'Shorts',
-    softwareRequired: ['Premiere', 'After Effects'],
-    leadType: 'HOT',
-    accessType: 'FREE',
-    contactDetails: { email: 'creator@example.com' },
-    status: 'Active',
-    createdAt: 1720000000000,
-  },
-  {
-    id: 'demo-lead-2',
-    title: 'Long-form documentary editor needed',
-    description: 'We are shooting a 45-minute documentary on tech startups. Need an experienced storyteller to put together the final cut. Raw footage provided.',
-    budgetNumeric: 2500,
-    budgetString: '$2,500 total',
-    currency: 'USD',
-    platform: 'YouTube',
-    category: 'Documentary',
-    softwareRequired: ['DaVinci Resolve'],
-    leadType: 'PRO',
-    accessType: 'PRO',
-    contactDetails: { email: 'studio@docfilms.com', whatsapp: '+1234567890' },
-    status: 'Active',
-    createdAt: 1720000000000,
-  }
-];
-
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       currentUser: null,
       users: [],
-      leads: DEMO_LEADS,
+      leads: [],
       spreadsheetId: null,
       setCurrentUser: (user) => set((state) => {
         if (!user) return { currentUser: null };
-        const isAdminEmail = user.email?.toLowerCase() === 'editingbynitesh@gmail.com';
         const existing = state.users.find(u => u.email === user.email);
         if (existing) {
-          const updatedExisting: User = {
-            ...existing,
-            role: isAdminEmail ? 'Admin' : existing.role,
-            plan: isAdminEmail ? 'PRO' : existing.plan,
-          };
           return {
-            currentUser: updatedExisting,
-            users: state.users.map(u => u.id === existing.id ? updatedExisting : u)
+            currentUser: existing,
+            users: state.users.map(u => u.id === existing.id ? existing : u)
           };
         } else {
-          // Determine if admin
           const newUser: User = {
             ...user,
-            role: isAdminEmail ? 'Admin' : 'Guest',
-            plan: isAdminEmail ? 'PRO' : 'FREE',
+            role: 'Guest',
+            plan: 'FREE',
             savedLeads: [],
             unlockedLeads: [],
           };
@@ -101,8 +59,7 @@ export const useStore = create<AppState>()(
       }),
       updateUserRolePlan: (userId, role, plan) => set((state) => {
         // Security check: Only Admins can modify other users' roles or upgrade to Admin
-        const isOperatorAdmin = state.currentUser?.role === 'Admin' || state.currentUser?.email?.toLowerCase() === 'editingbynitesh@gmail.com';
-        if (!isOperatorAdmin && role === 'Admin') {
+        if (state.currentUser?.role !== 'Admin' && role === 'Admin') {
           console.warn('Unauthorized role change attempt blocked.');
           return state;
         }
@@ -159,51 +116,55 @@ export const useStore = create<AppState>()(
         }
       },
       addLead: async (lead) => {
-        try {
-          const token = await getFirebaseIdToken();
-          if (!token) throw new Error('Sign in required');
-          const res = await fetch('/api/leads', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(lead),
-          });
-          if (!res.ok) throw new Error('API route unavailable');
-          const data = await res.json();
-          if (data.success && data.lead) {
-            set((state) => ({ leads: [data.lead, ...state.leads] }));
-            return data.lead;
-          } else {
-            throw new Error(data.errors?.join(', ') || 'Failed to add lead via server API');
+        const token = await getFirebaseIdToken();
+        if (token) {
+          try {
+            const res = await fetch('/api/leads', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(lead),
+            });
+            if (res.status === 401 || res.status === 403) {
+              throw new Error('You do not have permission to create leads.');
+            }
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.lead) {
+                set((state) => ({ leads: [data.lead, ...state.leads] }));
+                return data.lead;
+              }
+            }
+          } catch (error) {
+            if (error instanceof Error && error.message.includes('permission')) throw error;
           }
-        } catch {
-          const cleanedTitle = (lead.title || 'Untitled Opportunity').trim();
-          const cleanedDesc = (lead.description || 'No description provided.').trim();
-          const newLead: Lead = {
-            ...lead,
-            title: cleanedTitle,
-            description: cleanedDesc,
-            budgetNumeric: Number(lead.budgetNumeric) || 0,
-            budgetString: lead.budgetString || `$${Number(lead.budgetNumeric) || 0}`,
-            currency: lead.currency || 'USD',
-            platform: lead.platform || 'YouTube',
-            category: lead.category || 'Shorts',
-            softwareRequired: Array.isArray(lead.softwareRequired) ? lead.softwareRequired : ['Premiere'],
-            leadType: lead.leadType || 'HOT',
-            accessType: lead.accessType || 'FREE',
-            contactDetails: {
-              email: lead.contactDetails?.email?.trim() || 'contact@example.com',
-              whatsapp: lead.contactDetails?.whatsapp?.trim() || undefined,
-            },
-            status: lead.status || 'Active',
-            id: uuidv4(),
-            createdAt: Date.now(),
-          };
-          set((state) => ({ leads: [newLead, ...state.leads] }));
-          return newLead;
         }
+        const cleanedTitle = (lead.title || 'Untitled Opportunity').trim();
+        const cleanedDesc = (lead.description || 'No description provided.').trim();
+        const newLead: Lead = {
+          ...lead,
+          title: cleanedTitle,
+          description: cleanedDesc,
+          budgetNumeric: Number(lead.budgetNumeric) || 0,
+          budgetString: lead.budgetString || `$${Number(lead.budgetNumeric) || 0}`,
+          currency: lead.currency || 'USD',
+          platform: lead.platform || 'YouTube',
+          category: lead.category || 'Shorts',
+          softwareRequired: Array.isArray(lead.softwareRequired) ? lead.softwareRequired : ['Premiere'],
+          leadType: lead.leadType || 'HOT',
+          accessType: lead.accessType || 'FREE',
+          contactDetails: {
+            email: lead.contactDetails?.email?.trim() || 'contact@example.com',
+            whatsapp: lead.contactDetails?.whatsapp?.trim() || undefined,
+          },
+          status: lead.status || 'Active',
+          id: uuidv4(),
+          createdAt: Date.now(),
+        };
+        set((state) => ({ leads: [newLead, ...state.leads] }));
+        return newLead;
       },
       updateLead: (id, updates) => set((state) => ({
         leads: state.leads.map(l => {

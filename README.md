@@ -82,11 +82,18 @@ continues locally. This means:
    bun install
    ```
 
-2. Create `.env.local` and set your Gemini API key (required for AI extraction):
+2. Create `.env.local` with the required secrets:
    ```bash
    GEMINI_API_KEY="your_gemini_api_key"
+   FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}'
+   ADMIN_EMAILS="you@gmail.com,second-admin@gmail.com"
+   APP_URL="http://localhost:3000"
    ```
-   `APP_URL` is only needed when deployed (auto-injected by AI Studio).
+   - `FIREBASE_SERVICE_ACCOUNT` — the private service-account JSON from Firebase → Project
+     settings → Service accounts. Enables the server-side Firestore backend and admin checks.
+   - `ADMIN_EMAILS` — comma-separated emails that get the Admin role (no hardcoded admin).
+   - Without these, the app still runs, but leads are stored only in the browser
+     (localStorage fallback) and no one is an admin.
 
 3. Start the dev server:
    ```bash
@@ -97,10 +104,12 @@ continues locally. This means:
 
 ## Environment Variables
 
-| Variable         | Required | Description                                          |
-|------------------|----------|------------------------------------------------------|
-| `GEMINI_API_KEY` | Yes*     | Gemini API key used by the AI extraction endpoint. *Required only for the "Auto-Fill" feature; the rest of the app runs without it. |
-| `APP_URL`        | No       | Deployed URL (injected by AI Studio; used for self-links/OAuth). |
+| Variable                 | Required | Description |
+|--------------------------|----------|-------------|
+| `GEMINI_API_KEY`         | Yes*     | Gemini API key for the AI extraction endpoint. *Only needed for "Auto-Fill". |
+| `FIREBASE_SERVICE_ACCOUNT` | Yes**  | Private service-account JSON for server-side Firestore access + token verification. **Needed for the real backend; without it `/api/leads` returns 503 and the app falls back to localStorage. |
+| `ADMIN_EMAILS`           | Yes**    | Comma-separated emails granted the Admin role. No hardcoded admin exists. |
+| `APP_URL`                | No       | Public URL of the deployment (used for self-links/OAuth). Not set automatically by Vercel. |
 
 Firebase config is committed in `firebase-applet-config.json` (public by design for
 the Firebase web SDK).
@@ -138,10 +147,12 @@ the Firebase web SDK).
 - The OAuth provider requests the `spreadsheets` scope, so the access token also
   drives the Google Sheets sync feature.
 - Roles: `Guest` / `Free` / `Pro` / `Admin`; Plans: `FREE` / `PRO`.
-- A single super-admin is recognized by hardcoded email (`editingbynitesh@gmail.com`).
-- **Known bug:** after a page refresh, `getAccessToken()` returns null (see
-  [Auth issues](#auth-issues)) and the app treats the Firebase session as signed-out
-  from the token's perspective, forcing a re-login for Sheets sync.
+- Admin role is granted server-side from the `ADMIN_EMAILS` env var (no hardcoded
+  email). The server verifies the Firebase ID token on every API call and looks up the
+  role/plan in the Firestore `users` collection (seeded automatically).
+- Normal sign-in requests only basic Google scopes (email/profile). The Google Sheets
+  scope is requested separately on demand (`authorizeSheets`), used only by the
+  Sheets Sync admin page.
 
 ## Admin Panel
 
@@ -152,9 +163,9 @@ Routes are under `/admin` (sidebar layout):
 - `/admin/users` — change user role/plan
 - `/admin/sync` — Google Sheets push/pull/create
 
-**Guard note:** The admin guard is enforced only in the client bundle. Anyone who can
-edit localStorage (or read the bundle) can elevate themselves. Not safe for real
-deployment as-is.
+**Guard note:** The admin layout now verifies the role server-side via `/api/me`
+(which validates the Firebase ID token and the Firestore `users` record), in addition
+to the client-side check. Server enforcement is authoritative.
 
 ## Google Sheets Sync
 

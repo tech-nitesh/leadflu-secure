@@ -17,7 +17,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/spreadsheets');
 
 let cachedAccessToken: string | null = null;
 
@@ -55,6 +54,26 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   } catch (error: any) {
     if (error?.code && REDIRECT_FALLBACK_ERRORS.has(error.code)) {
       await signInWithRedirect(auth, provider);
+      return { user: auth.currentUser as User, accessToken: '', usedRedirect: true };
+    }
+    throw error;
+  }
+}
+
+function getSheetsProvider(): GoogleAuthProvider {
+  const sheetsProvider = new GoogleAuthProvider();
+  sheetsProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+  return sheetsProvider;
+}
+
+export async function authorizeSheets(): Promise<GoogleSignInResult> {
+  const sheetsProvider = getSheetsProvider();
+  try {
+    const result = await signInWithPopup(auth, sheetsProvider);
+    return { user: result.user, accessToken: extractOAuthToken(result), usedRedirect: false };
+  } catch (error: any) {
+    if (error?.code && REDIRECT_FALLBACK_ERRORS.has(error.code)) {
+      await signInWithRedirect(auth, sheetsProvider);
       return { user: auth.currentUser as User, accessToken: '', usedRedirect: true };
     }
     throw error;

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyFirebaseIdToken, VerifiedUser } from './verify';
 import { adminAuth, adminDb, isServerConfigured } from './firebase-admin';
 
-export const ADMIN_EMAILS = ['editingbynitesh@gmail.com'];
+export function getAdminEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS || '';
+  return raw
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 export interface AuthContext {
   user: VerifiedUser;
@@ -15,7 +21,7 @@ const ROLE_CACHE_TTL = 30_000;
 const roleCache = new Map<string, { role: string; plan: string; at: number }>();
 
 function isSeedAdmin(email: string | null): boolean {
-  return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
+  return !!email && getAdminEmails().includes(email.toLowerCase());
 }
 
 export function fallbackRoleFor(email: string | null): { role: 'Guest' | 'Admin'; plan: 'FREE' | 'PRO' } {
