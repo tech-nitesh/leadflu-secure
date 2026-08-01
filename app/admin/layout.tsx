@@ -78,29 +78,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans w-full !max-w-none">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans w-full !max-w-none">
       <style>{`
         /* Override mobile wrapper for admin */
         body > div { max-width: 100% !important; border-radius: 0 !important; box-shadow: none !important; display: flex; }
       `}</style>
       
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col shrink-0">
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="font-bold text-xl flex items-center gap-2">
+      {/* Header / Sidebar */}
+      <aside className="w-full lg:w-64 bg-white dark:bg-zinc-900 lg:border-r border-b lg:border-b-0 border-zinc-200 dark:border-zinc-800 flex flex-col lg:flex-col shrink-0 lg:min-h-screen">
+        <div className="p-4 lg:p-6 flex items-center justify-between lg:block border-b lg:border-b-0 border-zinc-200 dark:border-zinc-800">
+          <h1 className="font-bold text-lg lg:text-xl flex items-center gap-2">
             <span className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-950 flex items-center justify-center text-sm">EL</span>
             Admin Pro
           </h1>
         </div>
         
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 lg:flex-none lg:block overflow-x-auto lg:overflow-visible p-2 lg:p-4 flex lg:flex-col gap-1 lg:space-y-1">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium whitespace-nowrap",
                   isActive 
                     ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50" 
                     : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/50"
@@ -113,7 +113,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="p-2 lg:p-4 border-t lg:border-t-0 border-zinc-200 dark:border-zinc-800 hidden lg:block">
           <button 
             onClick={() => router.push('/')}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/50 w-full"
@@ -125,8 +125,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden h-[100dvh]">
-        <div className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 flex flex-col overflow-hidden lg:h-[100dvh]">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
           {children}
         </div>
       </main>
