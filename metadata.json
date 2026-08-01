@@ -1,0 +1,6 @@
+{
+  "name": "LeadFlu - Freelance Video Editor Gig Board",
+  "description": "Find top video editing leads, YouTube Shorts, Long-form documentaries, and podcast gigs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
