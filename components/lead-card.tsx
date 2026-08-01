@@ -5,6 +5,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { Bookmark, Youtube, Instagram, Headphones, MonitorPlay, Zap, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import { toast } from '@/lib/toast';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const PlatformIcon = ({ platform, className }: { platform: string, className?: string }) => {
@@ -18,8 +20,10 @@ const PlatformIcon = ({ platform, className }: { platform: string, className?: s
 
 export function LeadCard({ lead, featured = false }: { lead: Lead, featured?: boolean }) {
   const { currentUser, saveLead, unsaveLead } = useStore();
+  const router = useRouter();
   const isSaved = currentUser?.savedLeads.includes(lead.id);
   const [formattedTime, setFormattedTime] = React.useState<string>('');
+  const [deadlineText, setDeadlineText] = React.useState<string>('');
 
   React.useEffect(() => {
     const handle = requestAnimationFrame(() => {
@@ -31,13 +35,27 @@ export function LeadCard({ lead, featured = false }: { lead: Lead, featured?: bo
       } catch {
         setFormattedTime('');
       }
+      if (lead.deadline) {
+        try {
+          const dl = new Date(lead.deadline);
+          if (!isNaN(dl.getTime())) {
+            setDeadlineText(formatDistanceToNow(dl, { addSuffix: true }));
+          }
+        } catch {
+          setDeadlineText('');
+        }
+      }
     });
     return () => cancelAnimationFrame(handle);
-  }, [lead.createdAt]);
+  }, [lead.createdAt, lead.deadline]);
 
   const toggleSave = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!currentUser) return; // or show login modal
+    if (!currentUser) {
+      toast('Sign in to save leads');
+      router.push(`/profile?next=${encodeURIComponent(`/lead/${lead.id}`)}`);
+      return;
+    }
     if (isSaved) unsaveLead(lead.id);
     else saveLead(lead.id);
   };
@@ -90,6 +108,12 @@ export function LeadCard({ lead, featured = false }: { lead: Lead, featured?: bo
         <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-white/50 mb-4 font-light">
           <PlatformIcon platform={lead.platform} className="w-4 h-4 opacity-70" /> {lead.platform} • {lead.category}
         </div>
+
+        {lead.deadline && (
+          <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20 text-xs font-medium">
+            <Zap className="w-3 h-3" /> Apply by {deadlineText}
+          </div>
+        )}
         
         <div className="flex items-center justify-between pt-4">
           <div className="px-4 py-2 rounded-2xl bg-black/5 dark:bg-black/30 border border-black/5 dark:border-white/5">

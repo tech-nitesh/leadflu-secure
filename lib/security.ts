@@ -1,19 +1,11 @@
 import { Lead, User } from './types';
 
 export function maskEmail(email?: string): string {
-  if (!email) return '***@***.com';
-  const parts = email.split('@');
-  if (parts.length !== 2) return 'cl****@gmail.com';
-  const name = parts[0];
-  const domain = parts[1];
-  const maskedName = name.length > 2 ? `${name.slice(0, 2)}****` : 'c****';
-  return `${maskedName}@${domain}`;
+  return email ? '•••••@•••••.com' : '•••••';
 }
 
 export function maskPhone(phone?: string): string {
-  if (!phone) return '+1 (***) ***-****';
-  if (phone.length <= 4) return '****';
-  return `${phone.slice(0, 3)} ***-***-${phone.slice(-2)}`;
+  return phone ? '••••••••••' : '+•• ••• ••• ••••';
 }
 
 export function canAccessLeadContact(lead: Lead, user: User | null): boolean {

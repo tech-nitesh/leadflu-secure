@@ -3,6 +3,7 @@ import './globals.css';
 import { BottomNav } from '@/components/navigation';
 import { StoreHydrator } from '@/components/store-hydrator';
 import { AuthProvider } from '@/components/auth-provider';
+import { Toast } from '@/components/toast';
 
 export const metadata: Metadata = {
   title: 'Lead Management Platform',
@@ -24,6 +25,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           </div>
           {children}
           <BottomNav />
+          <Toast />
         </div>
       </body>
     </html>

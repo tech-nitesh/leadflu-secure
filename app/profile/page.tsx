@@ -2,23 +2,27 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { loginWithUsername, logout, getAuthErrorMessage } from '@/lib/firebase';
+import { loginWithUsername, logout, getAuthErrorMessage, ADMIN_USERNAME } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { LeadFluLogo } from '@/components/logo';
 import { whatsappLink } from '@/lib/whatsapp';
-import { UserCircle2, LogOut, Shield, Crown, LifeBuoy } from 'lucide-react';
+import { UserCircle2, LogOut, Shield, Crown, LifeBuoy, Eye, EyeOff, Pencil, Check, X, MessageCircle } from 'lucide-react';
 
 export default function Profile() {
-  const { currentUser, setCurrentUser } = useStore();
+  const { currentUser, setCurrentUser, updateName, recordUnlockRequest, leads } = useStore();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [upgradeNote, setUpgradeNote] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -26,6 +30,17 @@ export default function Profile() {
   }, []);
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
+
+  const getNextPath = (): string | null => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next');
+      if (next && next.startsWith('/') && !next.startsWith('//')) return next;
+    } catch {
+      // ignore
+    }
+    return null;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +57,12 @@ export default function Profile() {
         role: 'Guest',
         plan: 'FREE',
         savedLeads: [],
-        unlockedLeads: []
+        unlockedLeads: [],
+        unlockRequests: []
       });
-      router.push('/');
+      const next = getNextPath();
+      const isAdminLogin = username.trim().toLowerCase() === ADMIN_USERNAME;
+      router.push(next || (isAdminLogin ? '/admin' : '/'));
     } catch (err) {
       console.error('Login failed:', err);
       setLoginError(getAuthErrorMessage(err, { usernameLogin: true }));
@@ -54,8 +72,25 @@ export default function Profile() {
   };
 
   const handleLogout = async () => {
+    if (!confirmLogout) {
+      setConfirmLogout(true);
+      setTimeout(() => setConfirmLogout(false), 3000);
+      return;
+    }
     await logout();
     setCurrentUser(null);
+    setConfirmLogout(false);
+  };
+
+  const startEditName = () => {
+    setNameDraft(currentUser?.name || currentUser?.username || '');
+    setEditingName(true);
+  };
+
+  const saveName = () => {
+    const trimmed = nameDraft.trim();
+    if (trimmed) updateName(trimmed);
+    setEditingName(false);
   };
 
   if (!currentUser) {
@@ -78,15 +113,25 @@ export default function Profile() {
             onChange={(e) => setUsername(e.target.value)}
             className="h-12 rounded-full px-5 bg-white/60 dark:bg-white/10 border-white/40 dark:border-white/10 backdrop-blur-md"
           />
-          <Input
-            type="password"
-            placeholder="Password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-12 rounded-full px-5 bg-white/60 dark:bg-white/10 border-white/40 dark:border-white/10 backdrop-blur-md"
-          />
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 rounded-full px-5 pr-12 bg-white/60 dark:bg-white/10 border-white/40 dark:border-white/10 backdrop-blur-md"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
           <Button type="submit" disabled={isLoggingIn} className="w-full rounded-full py-6 shadow-lg shadow-black/5" size="lg">
             {isLoggingIn ? 'Signing in...' : 'Sign in'}
           </Button>
@@ -109,6 +154,19 @@ export default function Profile() {
         <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-6 text-center max-w-xs">
           No account? Contact the admin to create one. You can browse free leads without signing in.
         </p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-3 text-center">
+          Forgot your password?{' '}
+          {(() => {
+            const wa = whatsappLink('Hi Nitesh, I forgot my LeadFlu password. Can you help me reset it?');
+            return wa ? (
+              <a href={wa} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">
+                Message the admin on WhatsApp
+              </a>
+            ) : (
+              <span>contact the admin.</span>
+            );
+          })()}
+        </p>
       </main>
     );
   }
@@ -128,7 +186,32 @@ export default function Profile() {
             <UserCircle2 className="w-14 h-14 text-zinc-400" />
           )}
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">{currentUser.name || currentUser.username}</h2>
+        <div className="flex items-center gap-2 mb-1">
+          {editingName ? (
+            <>
+              <Input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                autoFocus
+                className="max-w-[180px] text-center rounded-full bg-white/60 dark:bg-white/10 border-white/40 dark:border-white/10"
+              />
+              <Button variant="ghost" size="icon" onClick={saveName} aria-label="Save name" className="rounded-full text-emerald-500">
+                <Check className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setEditingName(false)} aria-label="Cancel" className="rounded-full text-zinc-500">
+                <X className="w-5 h-5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold tracking-tight">{currentUser.name || currentUser.username}</h2>
+              <Button variant="ghost" size="icon" onClick={startEditName} aria-label="Edit name" className="rounded-full text-zinc-400 hover:text-blue-500">
+                <Pencil className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+        </div>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-4">@{currentUser.username || 'user'}</p>
         <div className="flex gap-2">
           {currentUser.role === 'Admin' && <Badge variant="default" className="gap-1 bg-black dark:bg-white text-white dark:text-black shadow-lg rounded-full px-4"><Shield className="w-3.5 h-3.5" /> Admin</Badge>}
@@ -147,6 +230,27 @@ export default function Profile() {
             <a href="/saved">View All</a>
           </Button>
         </div>
+
+        {(currentUser.unlockRequests?.length || 0) > 0 && (
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-3xl p-5 shadow-lg shadow-black/5">
+            <p className="font-bold text-lg flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-green-600" /> Unlock Requests
+            </p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+              {currentUser.unlockRequests!.length} lead(s) you asked to unlock on WhatsApp
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(currentUser.unlockRequests || []).map((leadId) => {
+                const lead = leads.find((l) => l.id === leadId);
+                return lead ? (
+                  <a key={leadId} href={`/lead/${lead.id}`} className="text-xs px-3 py-1.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20 hover:bg-green-500/20 transition-colors">
+                    {lead.title}
+                  </a>
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
 
         {currentUser.plan === 'FREE' && (
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20 text-white relative overflow-hidden">
@@ -183,8 +287,8 @@ export default function Profile() {
           </Button>
         )}
 
-        <Button variant="outline" className="w-full gap-2 rounded-full py-6 mt-4 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm" onClick={handleLogout}>
-          <LogOut className="w-4 h-4" /> Sign Out
+        <Button variant="outline" className={`w-full gap-2 rounded-full py-6 mt-4 border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm ${confirmLogout ? 'text-rose-600 bg-rose-50 dark:bg-rose-500/10' : 'text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10'}`} onClick={handleLogout}>
+          <LogOut className="w-4 h-4" /> {confirmLogout ? 'Confirm sign out?' : 'Sign Out'}
         </Button>
       </div>
     </main>

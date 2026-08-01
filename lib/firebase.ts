@@ -48,7 +48,7 @@ export interface GoogleSignInResult {
   usedRedirect: boolean;
 }
 
-const ADMIN_USERNAME = (process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'adminleadflu').toLowerCase();
+export const ADMIN_USERNAME = (process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'adminleadflu').toLowerCase();
 
 export const USERNAME_DOMAIN = '@leadflu.app';
 

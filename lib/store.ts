@@ -11,11 +11,13 @@ interface AppState {
   spreadsheetId: string | null;
   setCurrentUser: (user: User | null) => void;
   applyServerProfile: (uid: string, role: Role, plan: Plan, username?: string | null, name?: string | null) => void;
+  updateName: (name: string) => void;
+  recordUnlockRequest: (leadId: string) => void;
   updateUserRolePlan: (userId: string, role: Role, plan: Plan) => void;
   saveLead: (leadId: string) => void;
   unsaveLead: (leadId: string) => void;
   addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => Promise<Lead | null>;
-  updateLead: (id: string, lead: Partial<Lead>) => void;
+  updateLeadApi: (id: string, updates: Partial<Lead>) => Promise<Lead | null>;
   deleteLead: (id: string) => void;
   setLeads: (leads: Lead[]) => void;
   fetchLeadsFromApi: () => Promise<void>;
@@ -40,6 +42,7 @@ export const useStore = create<AppState>()(
             plan: existing.plan === 'PRO' || user.plan === 'PRO' ? 'PRO' : existing.plan,
             savedLeads: existing.savedLeads ?? [],
             unlockedLeads: existing.unlockedLeads ?? [],
+            unlockRequests: existing.unlockRequests ?? user.unlockRequests ?? [],
           };
           return {
             currentUser: merged,
@@ -52,6 +55,7 @@ export const useStore = create<AppState>()(
             plan: user.plan || 'FREE',
             savedLeads: [],
             unlockedLeads: [],
+            unlockRequests: [],
           };
           return { currentUser: newUser, users: [...state.users, newUser] };
         }
@@ -69,6 +73,25 @@ export const useStore = create<AppState>()(
         return {
           currentUser: updated,
           users: state.users.map(u => u.id === uid ? updated : u),
+        };
+      }),
+      updateName: (name) => set((state) => {
+        if (!state.currentUser) return state;
+        const updated = { ...state.currentUser, name };
+        return {
+          currentUser: updated,
+          users: state.users.map(u => u.id === updated.id ? updated : u),
+        };
+      }),
+      recordUnlockRequest: (leadId) => set((state) => {
+        if (!state.currentUser) return state;
+        const updated = {
+          ...state.currentUser,
+          unlockRequests: Array.from(new Set([...(state.currentUser.unlockRequests || []), leadId])),
+        };
+        return {
+          currentUser: updated,
+          users: state.users.map(u => u.id === updated.id ? updated : u),
         };
       }),
       updateUserRolePlan: (userId, role, plan) => set((state) => {
@@ -176,25 +199,32 @@ export const useStore = create<AppState>()(
           status: lead.status || 'Active',
           id: uuidv4(),
           createdAt: Date.now(),
+          deadline: lead.deadline,
         };
         set((state) => ({ leads: [newLead, ...state.leads] }));
         return newLead;
       },
-      updateLead: (id, updates) => set((state) => ({
-        leads: state.leads.map(l => {
-          if (l.id !== id) return l;
-          return {
-            ...l,
-            ...updates,
-            title: updates.title !== undefined ? updates.title.trim() : l.title,
-            description: updates.description !== undefined ? updates.description.trim() : l.description,
-            contactDetails: updates.contactDetails ? {
-              email: updates.contactDetails.email?.trim() || l.contactDetails.email,
-              whatsapp: updates.contactDetails.whatsapp !== undefined ? updates.contactDetails.whatsapp.trim() : l.contactDetails.whatsapp,
-            } : l.contactDetails,
-          };
-        })
-      })),
+      updateLeadApi: async (id, updates) => {
+        const token = await getFirebaseIdToken();
+        if (!token) return null;
+        const res = await fetch(`/api/leads/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data?.success && data?.lead) {
+          set((state) => ({
+            leads: state.leads.map((l) => (l.id === id ? data.lead : l)),
+          }));
+          return data.lead;
+        }
+        return null;
+      },
       deleteLead: (id) => set((state) => ({
         leads: state.leads.filter(l => l.id !== id)
       })),

@@ -4,16 +4,20 @@ import { useStore } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap } from 'lucide-react';
+import { LeadCard } from '@/components/lead-card';
+import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap, Check, Crown, CalendarClock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getSanitizedLead, canAccessLeadContact } from '@/lib/security';
 import { whatsappLink } from '@/lib/whatsapp';
+import { toast } from '@/lib/toast';
+
+const PRO_BENEFITS = ['Full client contact details', 'Priority access to premium gigs', 'New PRO leads first'];
 
 export default function LeadDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { leads, currentUser, saveLead, unsaveLead } = useStore();
+  const { leads, currentUser, saveLead, unsaveLead, recordUnlockRequest } = useStore();
   const [isMounted, setIsMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
@@ -35,13 +39,28 @@ export default function LeadDetailPage() {
   const isLocked = !canAccessLeadContact(rawLead, currentUser);
   const lead = getSanitizedLead(rawLead, currentUser);
 
+  const similarLeads = leads
+    .filter(l => l.id !== rawLead.id)
+    .filter(l => l.category === rawLead.category || l.platform === rawLead.platform)
+    .slice(0, 3);
+
   const toggleSave = () => {
     if (!currentUser) {
-      router.push('/profile');
+      toast('Sign in to save leads');
+      router.push(`/profile?next=${encodeURIComponent(`/lead/${lead.id}`)}`);
       return;
     }
     if (isSaved) unsaveLead(lead.id);
     else saveLead(lead.id);
+  };
+
+  const handleUnlock = () => {
+    if (currentUser) recordUnlockRequest(rawLead.id);
+    const wa = whatsappLink(
+      `Hi Nitesh, I want to access PRO membership and unlock this lead. Lead ID: ${lead.id} - ${lead.title}`
+    );
+    if (wa) window.open(wa, '_blank', 'noopener,noreferrer');
+    else router.push('/profile');
   };
 
   const handleCopyEmail = async () => {
@@ -98,6 +117,11 @@ export default function LeadDetailPage() {
           <span className="text-zinc-700 dark:text-zinc-300 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full border border-black/5 dark:border-white/5">{lead.category}</span>
           <span className="opacity-50">•</span>
           <span className="opacity-70">{formatDistanceToNow(lead.createdAt, { addSuffix: true })}</span>
+          {lead.deadline && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20 text-xs font-medium">
+              <CalendarClock className="w-3.5 h-3.5" /> Apply by {formatDistanceToNow(lead.deadline, { addSuffix: true })}
+            </span>
+          )}
         </div>
 
         <div className="bg-gradient-to-br from-white/40 to-white/10 dark:from-white/10 dark:to-white/5 backdrop-blur-md rounded-3xl p-6 mb-8 border border-white/40 dark:border-white/10 shadow-lg flex items-center justify-between">
@@ -139,7 +163,7 @@ export default function LeadDetailPage() {
               </div>
               <div className="flex-1">
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Email</p>
-                <p className="font-medium text-sm sm:text-base">{isLocked ? 'cl****@gmail.com' : lead.contactDetails.email}</p>
+                <p className="font-medium text-sm sm:text-base">{lead.contactDetails.email}</p>
               </div>
               {!isLocked && (
                 <Button variant="secondary" size="sm" onClick={handleCopyEmail} className="rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-black/5 dark:border-white/5">
@@ -155,7 +179,7 @@ export default function LeadDetailPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">WhatsApp</p>
-                  <p className="font-medium text-sm sm:text-base">{isLocked ? '+1 (***) ***-****' : lead.contactDetails.whatsapp}</p>
+                  <p className="font-medium text-sm sm:text-base">{lead.contactDetails.whatsapp}</p>
                 </div>
               </div>
             )}
@@ -163,33 +187,39 @@ export default function LeadDetailPage() {
 
           {isLocked && (
             <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/20 dark:bg-zinc-950/20 backdrop-blur-sm rounded-3xl">
-              <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl text-center max-w-[280px] w-full mx-4 border border-white/40 dark:border-white/10">
+              <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl text-center max-w-[300px] w-full mx-4 border border-white/40 dark:border-white/10">
                 <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8" />
                 </div>
                 <h4 className="font-bold text-lg mb-2">Pro Member Only</h4>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Unlock this lead&apos;s contact details by requesting a PRO membership.</p>
-                {(() => {
-                  const wa = whatsappLink(
-                    `Hi Nitesh, I want to access PRO membership and unlock this lead. Lead ID: ${lead.id} - ${lead.title}`
-                  );
-                  return wa ? (
-                    <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-green-500/25">
-                      <a href={wa} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="w-5 h-5 mr-2" /> Unlock on WhatsApp
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-blue-500/25" onClick={() => router.push('/profile')}>
-                      Upgrade to Pro
-                    </Button>
-                  );
-                })()}
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Unlock this lead&apos;s contact details by requesting a PRO membership.</p>
+                <ul className="text-left space-y-2 mb-6">
+                  {PRO_BENEFITS.map((benefit) => (
+                    <li key={benefit} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
+                      <Check className="w-4 h-4 text-blue-500 shrink-0" /> {benefit}
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={handleUnlock} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-green-500/25">
+                  <MessageCircle className="w-5 h-5 mr-2" /> Unlock on WhatsApp
+                </Button>
+                <p className="text-[11px] text-zinc-400 mt-3">Membership is granted by the admin after you reach out on WhatsApp.</p>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {similarLeads.length > 0 && (
+        <div className="px-6 pb-6">
+          <h3 className="text-lg font-bold mb-4">Similar Gigs</h3>
+          <div className="flex flex-col gap-0">
+            {similarLeads.map((l) => (
+              <LeadCard key={l.id} lead={l} />
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

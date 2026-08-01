@@ -16,6 +16,7 @@ export interface User {
   expiryDate?: number;
   savedLeads: string[];
   unlockedLeads: string[];
+  unlockRequests?: string[];
 }
 
 export interface Lead {
@@ -37,4 +38,5 @@ export interface Lead {
   };
   status: LeadStatus;
   createdAt: number;
+  deadline?: number;
 }

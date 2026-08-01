@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Crown, Shield, User, UserPlus, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import { Crown, Shield, User, UserPlus, Loader2, Trash2, RefreshCw, Eye, EyeOff, Search as SearchIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { getFirebaseIdToken } from '@/lib/firebase';
 
@@ -27,11 +27,13 @@ export default function AdminUsersPage() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [plan, setPlan] = useState<'PRO' | 'FREE'>('FREE');
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -159,6 +161,9 @@ export default function AdminUsersPage() {
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredUsers = users.filter(u => !q || `${u.username} ${u.name || ''}`.toLowerCase().includes(q));
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
@@ -185,7 +190,25 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Password</label>
-                <Input type="password" placeholder="Min 6 characters" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min 6 characters"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Plan</label>
@@ -213,18 +236,28 @@ export default function AdminUsersPage() {
             <p className="text-zinc-500 text-sm">Loading users...</p>
           ) : (
             <div className="space-y-4">
-              {users.map((user) => {
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by username or name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 rounded-full bg-zinc-50 dark:bg-zinc-900"
+                />
+              </div>
+              {filteredUsers.map((user) => {
                 const isAdminRow = user.role === 'Admin';
                 return (
-                  <div key={user.id} className="flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+                  <div key={user.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-4 flex-wrap min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                         {isAdminRow ? <Shield className="w-6 h-6 text-zinc-500" /> : <User className="w-6 h-6 text-zinc-500" />}
                       </div>
-                      <div>
-                        <h4 className="font-semibold">{user.name || user.username}</h4>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold truncate">{user.name || user.username}</h4>
                         <p className="text-sm text-zinc-500">@{user.username}</p>
-                        <div className="flex gap-2 mt-1.5 items-center">
+                        <div className="flex gap-2 mt-1.5 items-center flex-wrap">
                           {isAdminRow && <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Admin</Badge>}
                           <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900">{user.plan}</Badge>
                           {user.plan === 'PRO' && user.expiryDate && (
@@ -237,7 +270,7 @@ export default function AdminUsersPage() {
                     </div>
 
                     {!isAdminRow ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {user.plan !== 'PRO' ? (
                           <Button variant="secondary" size="sm" disabled={updatingId === user.id} onClick={() => updatePlan(user, 'PRO')} className="gap-2">
                             <Crown className="w-4 h-4 text-amber-500" /> Upgrade to Pro
@@ -257,12 +290,14 @@ export default function AdminUsersPage() {
                         </Button>
                       </div>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Fixed account</Badge>
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider self-start md:self-auto">Fixed account</Badge>
                     )}
                   </div>
                 );
               })}
-              {users.length === 0 && <p className="text-zinc-500 text-sm">No users registered yet.</p>}
+              {filteredUsers.length === 0 && (
+                <p className="text-zinc-500 text-sm">{q ? 'No users match your search.' : 'No users registered yet.'}</p>
+              )}
             </div>
           )}
         </CardContent>
