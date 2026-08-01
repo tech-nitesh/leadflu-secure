@@ -84,6 +84,7 @@ export async function createLead(data: Partial<Lead>): Promise<{ lead: Lead | nu
     },
     status: data.status || 'Active',
     createdAt: now,
+    deadline: typeof data.deadline === 'number' ? data.deadline : undefined,
   };
 
   await docRef.set(lead);
