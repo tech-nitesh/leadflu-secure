@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { getFirebaseIdToken } from '@/lib/firebase';
+import { waitForAuthReady } from '@/lib/firebase';
 import { LayoutDashboard, Users, FileText, Database, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,22 +22,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   React.useEffect(() => {
     let cancelled = false;
-    let attempts = 0;
-
-    const check = async () => {
-      const token = await getFirebaseIdToken();
+    (async () => {
+      const user = await waitForAuthReady();
       if (cancelled) return;
-      if (!token) {
-        // Firebase auth may still be restoring the session after a refresh.
-        attempts += 1;
-        if (attempts >= 20) {
-          setServerChecked(true);
-          return;
-        }
-        setTimeout(check, 250);
+      if (!user) {
+        setServerVerified(false);
+        setServerChecked(true);
         return;
       }
       try {
+        const token = await user.getIdToken();
+        if (cancelled) return;
         const res = await fetch('/api/me', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
@@ -57,9 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setServerChecked(true);
         }
       }
-    };
-
-    check();
+    })();
     return () => {
       cancelled = true;
     };

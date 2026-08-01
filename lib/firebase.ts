@@ -125,6 +125,15 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
   return onAuthStateChanged(auth, callback);
 }
 
+export function waitForAuthReady(): Promise<User | null> {
+  return new Promise((resolve) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      unsub();
+      resolve(user);
+    });
+  });
+}
+
 export const getAccessToken = async (): Promise<string | null> => {
   return cachedAccessToken;
 };
