@@ -10,12 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, Trash2 } from 'lucide-react';
 import { Lead } from '@/lib/types';
 import { format } from 'date-fns';
+import { getFirebaseIdToken } from '@/lib/firebase';
 
 export default function AdminLeadsPage() {
   const { leads, addLead, deleteLead } = useStore();
   const [isMounted, setIsMounted] = useState(false);
   const [rawMessage, setRawMessage] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Lead>>({
     title: '',
     description: '',
@@ -51,22 +53,46 @@ export default function AdminLeadsPage() {
   const handleAiFill = async () => {
     if (!rawMessage) return;
     setIsAiLoading(true);
+    setAiError(null);
     try {
+      const token = await getFirebaseIdToken();
+      if (!token) {
+        setAiError('You must be signed in to use AI extraction.');
+        return;
+      }
       const res = await fetch('/api/leads/ai-extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ message: rawMessage })
       });
       const data = await res.json();
+      if (!res.ok) {
+        setAiError(data.error || `Request failed (${res.status}).`);
+        return;
+      }
       if (data.title) {
         setFormData(prev => ({
           ...prev,
-          ...data,
-          contactDetails: prev.contactDetails
+          title: data.title,
+          description: data.description,
+          budgetNumeric: data.budgetNumeric,
+          budgetString: data.budgetString,
+          platform: data.platform,
+          category: data.category,
+          softwareRequired: data.softwareRequired,
+          leadType: data.leadType,
+          accessType: data.accessType,
+          contactDetails: {
+            email: data.contactEmail || prev.contactDetails?.email || '',
+          },
         }));
       }
     } catch (err) {
       console.error(err);
+      setAiError('AI extraction failed. Please try again.');
     } finally {
       setIsAiLoading(false);
     }
@@ -137,6 +163,11 @@ export default function AdminLeadsPage() {
               {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               {isAiLoading ? 'Analyzing with Gemini...' : 'Auto-Fill Fields'}
             </Button>
+            {aiError && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-2">
+                {aiError}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

@@ -15,6 +15,7 @@ export default function LeadDetailPage() {
   const { leads, currentUser, saveLead, unsaveLead } = useStore();
   const [isMounted, setIsMounted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -40,6 +41,16 @@ export default function LeadDetailPage() {
     }
     if (isSaved) unsaveLead(lead.id);
     else saveLead(lead.id);
+  };
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(lead.contactDetails.email);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    } catch {
+      window.open(`mailto:${lead.contactDetails.email}`);
+    }
   };
 
   const handleShare = () => {
@@ -130,8 +141,8 @@ export default function LeadDetailPage() {
                 <p className="font-medium text-sm sm:text-base">{isLocked ? 'cl****@gmail.com' : lead.contactDetails.email}</p>
               </div>
               {!isLocked && (
-                <Button variant="secondary" size="sm" onClick={() => window.open(`mailto:${lead.contactDetails.email}`)} className="rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-black/5 dark:border-white/5">
-                  Copy
+                <Button variant="secondary" size="sm" onClick={handleCopyEmail} className="rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-black/5 dark:border-white/5">
+                  {emailCopied ? 'Copied!' : 'Copy'}
                 </Button>
               )}
             </div>

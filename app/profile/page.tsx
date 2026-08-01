@@ -1,52 +1,51 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { initAuth, googleSignIn, logout, getAccessToken } from '@/lib/firebase';
+import { signInWithGoogle, logout, getAuthErrorMessage } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LeadFluLogo } from '@/components/logo';
 import { UserCircle2, LogOut, Shield, Crown, Zap } from 'lucide-react';
-import { User } from 'firebase/auth';
 
 export default function Profile() {
   const { currentUser, setCurrentUser, leads } = useStore();
   const [isMounted, setIsMounted] = useState(false);
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [redirectNotice, setRedirectNotice] = useState(false);
+  const [upgradeNote, setUpgradeNote] = useState(false);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
-    const unsubscribe = initAuth(
-      (user) => { setFirebaseUser(user); },
-      () => { setFirebaseUser(null); }
-    );
-    return () => {
-      cancelAnimationFrame(handle);
-      unsubscribe();
-    };
+    return () => cancelAnimationFrame(handle);
   }, []);
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
+    setLoginError(null);
+    setRedirectNotice(false);
     try {
-      const result = await googleSignIn();
-      if (result) {
-        setCurrentUser({
-          id: result.user.uid,
-          name: result.user.displayName,
-          email: result.user.email,
-          avatar: result.user.photoURL,
-          role: 'Guest',
-          plan: 'FREE',
-          savedLeads: [],
-          unlockedLeads: []
-        });
+      const result = await signInWithGoogle();
+      if (result.usedRedirect) {
+        setRedirectNotice(true);
+        return;
       }
+      setCurrentUser({
+        id: result.user.uid,
+        name: result.user.displayName,
+        email: result.user.email,
+        avatar: result.user.photoURL,
+        role: 'Guest',
+        plan: 'FREE',
+        savedLeads: [],
+        unlockedLeads: []
+      });
     } catch (err) {
       console.error('Login failed:', err);
+      setLoginError(getAuthErrorMessage(err));
     } finally {
       setIsLoggingIn(false);
     }
@@ -77,6 +76,14 @@ export default function Profile() {
           </svg>
           {isLoggingIn ? 'Signing in...' : 'Sign in with Google'}
         </Button>
+        {redirectNotice && (
+          <p className="text-blue-600 dark:text-blue-400 text-sm mt-4 text-center max-w-xs">
+            You will be redirected to Google to complete sign-in. After signing in you will be brought back automatically.
+          </p>
+        )}
+        {loginError && (
+          <p className="text-red-600 dark:text-red-400 text-sm mt-4 text-center max-w-xs">{loginError}</p>
+        )}
       </main>
     );
   }
@@ -125,9 +132,14 @@ export default function Profile() {
             <p className="text-blue-100/80 mb-6 text-sm relative z-10">
               Unlock full contact details and get priority access to premium editing gigs.
             </p>
-            <Button className="w-full bg-white text-blue-600 hover:bg-blue-50 rounded-full font-bold shadow-lg shadow-black/10 relative z-10">
+            <Button className="w-full bg-white text-blue-600 hover:bg-blue-50 rounded-full font-bold shadow-lg shadow-black/10 relative z-10" onClick={() => setUpgradeNote(true)}>
               Upgrade Now
             </Button>
+            {upgradeNote && (
+              <p className="text-blue-100/90 text-xs text-center relative z-10 mt-3">
+                Pro upgrades are coming soon. Contact the admin to enable your PRO plan.
+              </p>
+            )}
           </div>
         )}
 

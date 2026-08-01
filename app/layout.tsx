@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { BottomNav } from '@/components/navigation';
 import { StoreHydrator } from '@/components/store-hydrator';
+import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
   title: 'Lead Management Platform',
@@ -13,6 +14,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className="dark">
       <body className="bg-zinc-50 dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 font-sans antialiased min-h-[100dvh] pb-safe selection:bg-blue-200 dark:selection:bg-blue-900" suppressHydrationWarning>
         <StoreHydrator />
+        <AuthProvider />
         <div className="mx-auto max-w-md w-full min-h-[100dvh] relative bg-zinc-50/80 dark:bg-zinc-950/80 shadow-2xl shadow-zinc-200/20 dark:shadow-none overflow-x-hidden">
           {/* Subtle colorful background blobs for premium glassmorphism */}
           <div className="fixed top-0 left-0 right-0 max-w-md mx-auto w-full h-full overflow-hidden -z-10 pointer-events-none">

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { getAccessToken, googleSignIn } from '@/lib/firebase';
+import { getAccessToken, signInWithGoogle } from '@/lib/firebase';
 import { pushLeadsToSheet, pullLeadsFromSheet, createSpreadsheet } from '@/lib/google-sheets';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -37,9 +37,13 @@ export default function SheetsSyncPage() {
     try {
       let token = await getAccessToken();
       if (!token) {
-        const result = await googleSignIn();
-        if (result) token = result.accessToken;
-        else throw new Error("Authentication failed");
+        const result = await signInWithGoogle();
+        if (result.usedRedirect) {
+          setError("Google sign-in is completing in a redirect. Finish signing in, then retry the sync.");
+          return;
+        }
+        if (!result.accessToken) throw new Error("Google sign-in did not return an access token.");
+        token = result.accessToken;
       }
       await action();
     } catch (err: any) {

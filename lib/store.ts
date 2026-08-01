@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Lead, User, Role, Plan } from './types';
+import { getFirebaseIdToken } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -9,6 +10,7 @@ interface AppState {
   leads: Lead[];
   spreadsheetId: string | null;
   setCurrentUser: (user: User | null) => void;
+  applyServerProfile: (uid: string, role: Role, plan: Plan) => void;
   updateUserRolePlan: (userId: string, role: Role, plan: Plan) => void;
   saveLead: (leadId: string) => void;
   unsaveLead: (leadId: string) => void;
@@ -88,6 +90,15 @@ export const useStore = create<AppState>()(
           return { currentUser: newUser, users: [...state.users, newUser] };
         }
       }),
+      applyServerProfile: (uid, role, plan) => set((state) => {
+        const current = state.currentUser;
+        if (!current || current.id !== uid) return state;
+        const updated: User = { ...current, role, plan };
+        return {
+          currentUser: updated,
+          users: state.users.map(u => u.id === uid ? updated : u),
+        };
+      }),
       updateUserRolePlan: (userId, role, plan) => set((state) => {
         // Security check: Only Admins can modify other users' roles or upgrade to Admin
         const isOperatorAdmin = state.currentUser?.role === 'Admin' || state.currentUser?.email?.toLowerCase() === 'editingbynitesh@gmail.com';
@@ -130,34 +141,32 @@ export const useStore = create<AppState>()(
       }),
       fetchLeadsFromApi: async () => {
         try {
-          const { currentUser } = get();
+          const token = await getFirebaseIdToken();
           const res = await fetch('/api/leads', {
             headers: {
-              'x-user-email': currentUser?.email || '',
-              'x-user-role': currentUser?.role || '',
-              'x-user-plan': currentUser?.plan || '',
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             cache: 'no-store'
           });
           if (!res.ok) return;
           const data = await res.json();
-          if (data.success && Array.isArray(data.leads) && data.leads.length > 0) {
+          if (data.success && Array.isArray(data.leads)) {
             set({ leads: data.leads });
           }
         } catch {
-          // Ignore if API endpoint doesn't exist
+          // Ignore if API endpoint is unavailable
         }
       },
       addLead: async (lead) => {
         try {
-          const { currentUser } = get();
+          const token = await getFirebaseIdToken();
+          if (!token) throw new Error('Sign in required');
           const res = await fetch('/api/leads', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-user-email': currentUser?.email || '',
-              'x-user-role': currentUser?.role || '',
-              'x-user-plan': currentUser?.plan || '',
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(lead),
           });

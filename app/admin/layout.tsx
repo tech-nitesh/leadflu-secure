@@ -3,7 +3,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { LayoutDashboard, Users, FileText, Database, Settings, LogOut } from 'lucide-react';
+import { getFirebaseIdToken } from '@/lib/firebase';
+import { LayoutDashboard, Users, FileText, Database, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -11,17 +12,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [isMounted, setIsMounted] = React.useState(false);
+  const [serverVerified, setServerVerified] = React.useState(false);
+  const [serverChecked, setServerChecked] = React.useState(false);
 
   React.useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
     return () => cancelAnimationFrame(handle);
   }, []);
 
-  if (!isMounted) {
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const token = await getFirebaseIdToken();
+      if (!token) {
+        if (!cancelled) setServerChecked(true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (!cancelled) {
+          if (res.ok) {
+            const data = await res.json();
+            setServerVerified(data?.user?.role === 'Admin');
+          } else {
+            setServerVerified(false);
+          }
+          setServerChecked(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setServerVerified(false);
+          setServerChecked(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.email]);
+
+  if (!isMounted || !serverChecked) {
     return <div className="p-6">Loading...</div>;
   }
 
-  if (currentUser?.role !== 'Admin') {
+  if (!serverVerified || currentUser?.role !== 'Admin') {
     return (
       <div className="flex h-screen items-center justify-center p-6 text-center">
         <div>
