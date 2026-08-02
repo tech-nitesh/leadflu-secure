@@ -2,8 +2,9 @@ HANOVER NOTES - LEADFLU (EDITOR GIGS)
 =====================================
 
 This file is a plain, non-technical guide that the developer keeps updated
-with everything you need to know and tell Nitesh. It is NOT part of the code,
-NOT committed to GitHub, and safe to share directly with Nitesh.
+with everything you need to know and tell Nitesh. It now lives in the private
+GitHub repo (tech-nitesh/leadflu-secure), so it is safe to share directly
+with Nitesh.
 
 LAST UPDATED: 3 Aug 2026 - 8-task rules 2, 3, 4, 5, 6 BUILT LOCALLY (awaiting
               owner test + approval before going live). Rules 1, 7, 8 still planned.
@@ -13,6 +14,8 @@ LAST UPDATED: 3 Aug 2026 - 8-task rules 2, 3, 4, 5, 6 BUILT LOCALLY (awaiting
               and users are not expected to renew long-term. Admin panel shows it only.
               DECISION: no payment gateway yet - payments happen on WhatsApp. Razorpay
               discussed as the likely future option for India (section 14).
+              Rules 2-6 APPROVED and pushed live today (3 Aug). Card design reworked
+              too - see section 17.
 
 
 1) WHAT IS THIS APP
@@ -342,3 +345,20 @@ DECISIONS RECORDED (so nothing is lost):
 - WhatsApp prefill uses a static template, no AI.
 - AI Auto-Fill now writes a SHORT, natural job title (max 60 characters) and a
   2-4 sentence summary instead of repeating the whole pasted message. (3 Aug 2026)
+
+
+17) CARD DESIGN - DONE (pushed live with the 8-task batch, 3 Aug 2026)
+---------------------------------------------------------------------
+- Titles fit on ONE line (long titles get cut with '...').
+- Contact details are shown right on the card for anyone who can see them
+  (email and/or WhatsApp, each with a small icon). For locked PRO/HOT leads,
+  non-PRO users see a blur with "Contact details locked - PRO members only"
+  written ON the blur itself. If a lead has no contact details at all, nothing
+  is shown (no dummy text).
+- Platform / category of "Other" is hidden (no more "Other.Other"). The empty
+  space is kept so all cards stay the same height.
+- Bottom row (Budget box + "View details" + "x hours ago") is uniform on every
+  card: "Budget" label left-aligned inside its box, time + button centered.
+  Top Opportunities cards use smaller text so it fits the narrow card width.
+- If a lead has no budget, the box shows whatever the admin typed into it
+  (e.g. "not disclosed" or "not present") - that is real data, not a bug.

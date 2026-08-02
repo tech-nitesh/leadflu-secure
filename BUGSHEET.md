@@ -20,11 +20,11 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
 | # | Task | Priority | MVP | Type | Status |
 |---|------|----------|-----|------|--------|
 | — | Site down (Vercel) | P0 | MVP | Infra | DONE — you fixed in Vercel |
-| 4 | Remove USD label | P0 | MVP | Small fix | Built locally, awaiting your test |
-| 2 | Smarter WhatsApp message | P1 | MVP | Small fix | Built locally, awaiting your test |
-| 3 | Fix blur (too much hidden) | P1 | MVP | UX fix | Built locally, awaiting your test |
-| 5 | Minimal lead form | P1 | MVP | Feature | Built locally, awaiting your test |
-| 6 | Visibility: all leads shown, contacts locked | P1 | MVP | Feature | Built locally, awaiting your test |
+| 4 | Remove USD label | P0 | MVP | Small fix | DONE - pushed live (3 Aug) |
+| 2 | Smarter WhatsApp message | P1 | MVP | Small fix | DONE - pushed live (3 Aug) |
+| 3 | Fix blur (too much hidden) | P1 | MVP | UX fix | DONE - pushed live (3 Aug) |
+| 5 | Minimal lead form | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
+| 6 | Visibility: all leads shown, contacts locked | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
 | 8 | Separate test site + test database | P0 (prereq) | MVP | Setup | Not started |
 | 1 | PRO max 2 devices | P2 | Post | Feature | Not started |
 | 7 | Admin edits all user details | P2 | Post | Feature | Not started |
@@ -144,6 +144,19 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
 - **How**: add limit/cursor to GET /api/leads (server), then the pages fetch the next
   page on demand.
 - **Open**: none.
+
+---
+
+## Card display polish - DONE (pushed live 3 Aug)
+- Contacts shown directly on cards for anyone who can see them; locked PRO/HOT
+  leads show a blur with "Contact details locked - PRO members only" written ON
+  the blur. A lead with no contact at all shows no blur/dummy text.
+- Titles fit on one line (truncated with '...').
+- "Other / Other" platform+category is hidden; the space is reserved so every
+  card keeps the same height.
+- Budget box + "View details" footer is uniform on all cards (featured cards use
+  smaller text to fit the narrow width).
+- "not disclosed" / "not present" in a budget box is real stored data, not a bug.
 
 ---
 
