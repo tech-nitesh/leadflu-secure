@@ -28,7 +28,7 @@ function SkeletonCard() {
 }
 
 export default function SearchPage() {
-  const { leads, fetchLeadsFromApi } = useStore();
+  const { leads, fetchLeadsFromApi, leadsLoadedAt } = useStore();
   const [isMounted, setIsMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState('');
@@ -38,13 +38,17 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    const handle = requestAnimationFrame(async () => {
+    const handle = requestAnimationFrame(() => {
       setIsMounted(true);
-      await fetchLeadsFromApi();
-      setLoaded(true);
+      if (leadsLoadedAt) {
+        setLoaded(true);
+        fetchLeadsFromApi();
+      } else {
+        fetchLeadsFromApi().then(() => setLoaded(true));
+      }
     });
     return () => cancelAnimationFrame(handle);
-  }, [fetchLeadsFromApi]);
+  }, [fetchLeadsFromApi, leadsLoadedAt]);
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
 

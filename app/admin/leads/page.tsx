@@ -121,6 +121,16 @@ export default function AdminLeadsPage() {
     e.preventDefault();
     setFormError(null);
     if (!formData.title) return;
+    const contact = formData.contactDetails;
+    const hasAnyContact = Boolean(
+      contact?.email?.trim() ||
+      contact?.whatsapp?.trim() ||
+      contact?.socialLinks?.some((s) => s && s.trim())
+    );
+    if (!hasAnyContact) {
+      setFormError('Add at least one contact detail (email, number, or website).');
+      return;
+    }
     try {
       if (editingId) {
         const updated = await updateLeadApi(editingId, formData);
@@ -250,15 +260,9 @@ export default function AdminLeadsPage() {
                 <Textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="min-h-[150px]" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Budget (Numeric)</Label>
-                  <Input type="number" required value={formData.budgetNumeric} onChange={e => setFormData({...formData, budgetNumeric: parseFloat(e.target.value)})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Budget String</Label>
-                  <Input required value={formData.budgetString} onChange={e => setFormData({...formData, budgetString: e.target.value})} placeholder="$500 total" />
-                </div>
+              <div className="space-y-2">
+                <Label>Cost / price</Label>
+                <Input value={formData.budgetString} onChange={e => setFormData({...formData, budgetString: e.target.value})} placeholder="e.g. $150 per video" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -284,35 +288,22 @@ export default function AdminLeadsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Lead Type</Label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950"
-                    value={formData.leadType} 
-                    onChange={e => setFormData({...formData, leadType: e.target.value as any})}
-                  >
-                    {LEAD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Access Required</Label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950"
-                    value={formData.accessType} 
-                    onChange={e => setFormData({...formData, accessType: e.target.value as any})}
-                  >
-                    <option value="FREE">FREE (Anyone)</option>
-                    <option value="PRO">PRO (Paid Only)</option>
-                  </select>
-                </div>
+              <div className="space-y-2">
+                <Label>Lead Type</Label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950"
+                  value={formData.leadType} 
+                  onChange={e => setFormData({...formData, leadType: e.target.value as any})}
+                >
+                  {LEAD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
               </div>
 
               <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <p className="text-sm font-semibold">Client Contact</p>
+                <p className="text-sm font-semibold">Client Contact <span className="text-zinc-400 font-normal">(at least one required)</span></p>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" required value={formData.contactDetails?.email || ''} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, email: e.target.value }})} />
+                  <Input type="email" value={formData.contactDetails?.email || ''} onChange={e => setFormData({...formData, contactDetails: { ...formData.contactDetails!, email: e.target.value }})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone / WhatsApp Number</Label>

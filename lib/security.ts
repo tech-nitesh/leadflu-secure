@@ -10,9 +10,9 @@ export function maskPhone(phone?: string): string {
 
 export function canAccessLeadContact(lead: Lead, user: User | null): boolean {
   if (!lead) return false;
-  // If lead is FREE, anyone can access
-  if (lead.accessType === 'FREE') return true;
-  // If lead is PRO, only PRO or Admin users can access
+  // FREE and FEATURED leads are open to everyone (HOT/FEATURED are just badges).
+  if (lead.leadType === 'FREE' || lead.leadType === 'FEATURED') return true;
+  // PRO and HOT leads: only PRO members and the admin can see the contacts.
   if (!user) return false;
   return user.role === 'Admin' || user.plan === 'PRO';
 }
@@ -43,7 +43,7 @@ export function validateLeadInput(leadData: Partial<Lead>): { valid: boolean; er
     errors.push('Description must be at least 10 characters long.');
   }
 
-  if (leadData.budgetNumeric === undefined || leadData.budgetNumeric < 0 || isNaN(Number(leadData.budgetNumeric))) {
+  if (leadData.budgetNumeric !== undefined && (leadData.budgetNumeric < 0 || isNaN(Number(leadData.budgetNumeric)))) {
     errors.push('A valid non-negative numeric budget is required.');
   }
 
@@ -55,11 +55,16 @@ export function validateLeadInput(leadData: Partial<Lead>): { valid: boolean; er
     errors.push('Category is required.');
   }
 
-  if (!leadData.contactDetails?.email) {
-    errors.push('Contact email is required.');
-  } else {
+  const hasAnyContact = Boolean(
+    leadData.contactDetails?.email?.trim() ||
+    leadData.contactDetails?.whatsapp?.trim() ||
+    leadData.contactDetails?.socialLinks?.some((s) => s && s.trim())
+  );
+  if (!hasAnyContact) {
+    errors.push('Add at least one contact detail (email, number, or website).');
+  } else if (leadData.contactDetails?.email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(leadData.contactDetails.email)) {
+    if (!emailRegex.test(leadData.contactDetails.email.trim())) {
       errors.push('Please enter a valid contact email address.');
     }
   }

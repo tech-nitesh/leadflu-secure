@@ -4,10 +4,16 @@ import { Lead, User, Role, Plan } from './types';
 import { getFirebaseIdToken } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 
+// How long the cached lead list is considered "fresh" before the app
+// silently re-fetches it in the background. The manual refresh button always
+// forces a fresh fetch regardless of this window.
+const LEADS_FRESH_MS = 60_000;
+
 interface AppState {
   currentUser: User | null;
   users: User[];
   leads: Lead[];
+  leadsLoadedAt: number | null;
   spreadsheetId: string | null;
   setCurrentUser: (user: User | null) => void;
   applyServerProfile: (uid: string, role: Role, plan: Plan, username?: string | null, name?: string | null) => void;
@@ -20,7 +26,7 @@ interface AppState {
   updateLeadApi: (id: string, updates: Partial<Lead>) => Promise<Lead | null>;
   deleteLead: (id: string) => Promise<void>;
   setLeads: (leads: Lead[]) => void;
-  fetchLeadsFromApi: () => Promise<void>;
+  fetchLeadsFromApi: (force?: boolean) => Promise<void>;
   setSpreadsheetId: (id: string) => void;
 }
 
@@ -30,6 +36,7 @@ export const useStore = create<AppState>()(
       currentUser: null,
       users: [],
       leads: [],
+      leadsLoadedAt: null,
       spreadsheetId: null,
       setCurrentUser: (user) => set((state) => {
         if (!user) return { currentUser: null };
@@ -133,7 +140,9 @@ export const useStore = create<AppState>()(
           users: state.users.map(u => u.id === updatedUser.id ? updatedUser : u)
         };
       }),
-      fetchLeadsFromApi: async () => {
+      fetchLeadsFromApi: async (force = false) => {
+        const { leadsLoadedAt } = get();
+        if (!force && leadsLoadedAt && Date.now() - leadsLoadedAt < LEADS_FRESH_MS) return;
         try {
           const token = await getFirebaseIdToken();
           const res = await fetch('/api/leads', {
@@ -146,7 +155,7 @@ export const useStore = create<AppState>()(
           if (!res.ok) return;
           const data = await res.json();
           if (data.success && Array.isArray(data.leads)) {
-            set({ leads: data.leads });
+            set({ leads: data.leads, leadsLoadedAt: Date.now() });
           }
         } catch {
           // Ignore if API endpoint is unavailable

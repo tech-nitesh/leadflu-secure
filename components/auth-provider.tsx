@@ -68,12 +68,17 @@ export function AuthProvider() {
           const current = useStore.getState().currentUser;
           if (!current || current.id !== user.uid) {
             setCurrentUser(toAppUser(user));
+            // The cached lead list is per-viewer (contacts are masked by who you
+            // are). Clear it on a user change and re-fetch with the new identity
+            // so one person's view never leaks to another.
+            useStore.setState({ leads: [], leadsLoadedAt: null });
+            syncServerProfile().then(() => useStore.getState().fetchLeadsFromApi(true));
           }
-          syncServerProfile();
         } else {
           setCachedAccessToken(null);
           if (useStore.getState().currentUser) {
             setCurrentUser(null);
+            useStore.setState({ leads: [], leadsLoadedAt: null });
           }
         }
       });

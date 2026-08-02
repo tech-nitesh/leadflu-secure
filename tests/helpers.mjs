@@ -185,7 +185,7 @@ export function makeLead(overrides = {}) {
     platform: 'YouTube',
     category: 'Shorts',
     softwareRequired: ['Premiere', 'After Effects'],
-    leadType: 'HOT',
+    leadType: 'FREE',
     accessType: 'FREE',
     contactDetails: { email: `client-${randomSuffix()}@example.com`, whatsapp: '+911234567890' },
     status: 'Active',

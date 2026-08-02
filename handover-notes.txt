@@ -1,0 +1,344 @@
+HANOVER NOTES - LEADFLU (EDITOR GIGS)
+=====================================
+
+This file is a plain, non-technical guide that the developer keeps updated
+with everything you need to know and tell Nitesh. It is NOT part of the code,
+NOT committed to GitHub, and safe to share directly with Nitesh.
+
+LAST UPDATED: 3 Aug 2026 - 8-task rules 2, 3, 4, 5, 6 BUILT LOCALLY (awaiting
+              owner test + approval before going live). Rules 1, 7, 8 still planned.
+              UX batch COMPLETE + admin polish DONE (see section 13).
+              Auth, admin login, PRO expiry, WhatsApp unlock, test accounts - DONE.
+              DECISION: PRO expiry date is NOT shown to users (no pressure marketing),
+              and users are not expected to renew long-term. Admin panel shows it only.
+              DECISION: no payment gateway yet - payments happen on WhatsApp. Razorpay
+              discussed as the likely future option for India (section 14).
+
+
+1) WHAT IS THIS APP
+-------------------
+LeadFlu is a mobile-first website where video editors can find client work
+("gigs"). The admin (Nitesh) posts leads, and editors browse them.
+
+There are three kinds of users:
+  - FREE user / GUEST : can see only "Free" leads. PRO leads show locked.
+  - PRO user          : can see everything, including PRO leads' contacts.
+  - ADMIN (Nitesh)    : manages leads, creates user accounts, handles payments.
+
+Only the admin can open the admin panel. Free and PRO users cannot.
+
+
+2) WHERE IT LIVES
+-----------------
+- Live website : https://leadflu-secure.vercel.app
+- Code/GitHub  : tech-nitesh/leadflu-secure (project files on Nitesh's GitHub)
+
+
+3) LOGIN INFO
+-------------
+Admin login (the ONLY way to open the admin panel):
+  Username : adminleadflu
+  Password : NiteshK@1209
+
+NOTE: These are also changeable in the server settings, keep them private.
+
+
+4) TEST ACCOUNTS
+----------------
+These accounts were created for testing. Nitesh can use them right away:
+
+  1. ADMIN  (full access, opens admin panel)
+     Username : adminleadflu
+     Password : NiteshK@1209
+
+  2. PRO USER (can see all leads including PRO contacts)
+     Username : testpro
+     Password : TestPro@123
+     Name     : Test Pro
+     (PRO valid 30 days - it will auto-downgrade after that)
+
+  3. FREE USER (sees free leads; PRO leads locked)
+     Username : testfree
+     Password : TestFree@123
+     Name     : Test Free
+
+You can create more users any time from the admin panel > Users > Create New Account.
+The username is what the person types to log in - no email is asked.
+
+
+5) HOW USERS USE THE APP
+------------------------
+- Anyone can open the website and browse FREE leads without logging in.
+- PRO leads are blurred/locked for free users.
+- If a free user wants a PRO lead, they tap "Unlock on WhatsApp".
+  WhatsApp opens on THEIR phone with a pre-typed message to Nitesh:
+      "I want to access pro membership and unlock this lead (Lead ID: ...)"
+- Nitesh talks to them on WhatsApp, collects the payment, then goes to the
+  admin panel and either creates a new account for them OR upgrades them to PRO.
+- The WhatsApp number used for unlocks: +919142476621
+
+
+6) PRO MEMBERSHIP = 30 DAYS
+---------------------------
+- When someone is made PRO, the plan is valid for 30 days.
+- The admin panel shows the expiry date for every PRO user (only the admin
+  sees it - the user never sees an expiry/expiration warning on their profile).
+- If the user does not renew, the app AUTOMATICALLY downgrades them to FREE
+  after 30 days (no manual work needed).
+- To renew, the admin clicks "Renew +30 days" on the user - this adds another
+  30 days from today.
+- Product note: LeadFlu is meant to bring users enough clients within a month,
+  so renewals are not expected long-term. No expiry pressure is shown to users.
+
+
+7) INVALID LOGIN / TROUBLE LOGGING IN
+-------------------------------------
+- If someone enters the wrong username or password, they see:
+      "Invalid username or password"
+  plus a "Contact Support" button that opens WhatsApp with a pre-typed
+  message: "I am having trouble logging in my account".
+- Nitesh can then fix/help them and create or reset their account.
+
+
+8) ADMIN PANEL - WHAT YOU CAN DO
+--------------------------------
+Open https://leadflu-secure.vercel.app/admin and log in with the admin username
+and password above. From there:
+
+  - OVERVIEW   : quick numbers (total users, PRO users, leads).
+  - LEAD MANAGER : add a lead by typing details OR paste a client message and
+                   press "Auto-Fill Fields" (AI fills the form). Delete leads.
+  - USERS      : create a new account (username + password + name + plan),
+                 upgrade to PRO (starts 30 days), renew (+30 days),
+                 downgrade to FREE, delete an account.
+  - SHEETS SYNC : optional - push/pull leads to a Google Sheet (needs Google
+                   sign-in once).
+
+Google Sheets note: the Google sign-in token expires after about 1 hour. If
+sync stops working, just sign in with Google again on that page.
+
+
+9) AI AUTO-FILL (GEMINI, with GROQ fallback)
+--------------------------------------------
+- In "Lead Manager", paste the client's raw message (e.g. "Need a YouTube
+  editor, 3 shorts/week, $300") and press Auto-Fill. Gemini fills the form.
+- Works on the free tier (~1,500 requests/day - more than enough for this app).
+- GROQ is the automatic fallback provider: if Gemini fails or is unconfigured,
+  the endpoint retries with Groq before returning an error, so "AI doesn't
+  work" should never happen just because one provider is down.
+- Extracts ONLY details present in the message (nothing is invented); missing
+  budget stays empty for the admin to fill in. Also extracts WhatsApp number,
+  email, and website links.
+- Env keys: GEMINI_API_KEY (Gemini), GROQ_API_KEY + GROQ_MODEL (fallback,
+  default model "qwen/qwen3.6-27b" which auto-falls-back to
+  llama-3.3-70b-versatile if the model id is unknown). AI_PROVIDER_FORCE
+  overrides the provider (used in tests).
+- Rate limit: 15 requests/min per IP, returns a friendly 429 otherwise.
+- The response includes a "provider" field ("gemini" or "groq") for debugging.
+- TESTING the fallback without code changes: the Groq API itself is verified
+  by POSTing to https://api.groq.com/openai/v1/chat/completions with the key
+  (see section 15 for the automated test, which is gated behind TEST_GROQ=1).
+
+
+10) COMING LATER (NOT BUILT YET)
+--------------------------------
+- Razorpay payment integration (Nitesh asked about it for taking payments
+  like a shopping website). For now, payments happen directly on WhatsApp.
+- "Give PRO members a bit of admin panel" - NOT included. Per the current
+  plan, ONLY the admin login can access the admin panel.
+
+
+11) HOW TO TEST (for Nitesh)
+---------------------------
+Test with 3 accounts:
+  1. ADMIN  - full access, can open admin panel.
+  2. PRO    - can see ALL leads including PRO contacts.
+  3. FREE / GUEST - sees free leads; PRO leads locked; unlock opens WhatsApp.
+Then test edge cases: wrong password, expired PRO (should become free),
+renewing a PRO user, deleting a user.
+
+
+12) UX IMPROVEMENTS - STATUS TRACKER (work in progress)
+------------------------------------------------------
+Batch of small improvements. Status codes: [x] done, [ ] not done yet.
+
+Login & Account:
+  [x] Show/hide password (eye) button on login
+  [x] Eye button on admin "create user" password too
+  [x] "Forgot password? Contact Nitesh on WhatsApp" hint on login
+  [x] After login redirect: admin -> /admin, others -> home
+  [x] Guests who tap bookmark are told "Sign in to save" and return to
+      the same lead after logging in (instead of getting stuck on login)
+
+Home & Search:
+  [x] Removed the dead bell icon (it did nothing)
+  [x] Empty state when there are no gigs ("No gigs yet, check back soon")
+  [x] Refresh button on home to reload leads
+  [x] Loading skeletons instead of blank "Loading..."
+  [x] Search filters (category) + sort (newest / budget) + result empty state
+  [x] "Load more" button instead of dumping every lead at once
+
+Lead page:
+  [x] "Similar gigs" shown below a lead
+  [x] "Apply by" deadline shown if a lead has one (admin can set it)
+  [x] Locked contacts fully hidden (no more showing "cl****@gmail.com")
+  [x] Unlock requests are remembered and shown on the profile page
+  [x] PRO explainer on the locked lead (what you get with PRO)
+
+Profile:
+  [x] Edit your display name
+  [x] Sign-out needs confirmation (two taps)
+  [x] "My unlock requests" section
+
+Admin:
+  [x] Admin user list works on mobile (buttons no longer overflow)
+  [x] Admin user list has a search box
+  [x] Leads can be EDITED (not just created/deleted)
+  [x] Delete actions ask for confirmation (leads)
+  [x] Admin can set an "apply by" deadline when creating/editing a lead
+
+General:
+  [x] Toast pop-ups (small messages, e.g. "Sign in to save leads")
+  [x] Admin login shows name/username correctly in the top-left
+
+
+13) ADMIN POLISH + DEPLOYMENT NOTES (done after the UX batch)
+-------------------------------------------------------------
+- The admin panel is now fully usable on a phone: the left sidebar turns into
+  a top bar with the four pages (Overview, Lead Manager, Users, Sheets Sync)
+  that you can scroll through. Desktop keeps the left sidebar.
+- "Exit Admin" button: on the phone it's in the TOP BAR (top-right corner) so
+  you are never locked inside the admin panel. On desktop it stays at the
+  bottom of the sidebar.
+- Fixed a bug: refreshing the admin page used to show "Access Denied" by
+  mistake. Now the app waits for the login session to load before checking,
+  so refresh works normally.
+- DEPLOYMENT NOTE: every time code is changed, it is pushed to GitHub and
+  Vercel auto-rebuilds the live site. If a phone still shows the OLD design,
+  it is just a stale cache - do a hard refresh or open in a private/incognito
+  window, or clear the site data for leadflu-secure.vercel.app.
+
+
+14) PAYMENT INTEGRATION - INDIA (side discussion, NOT built yet)
+----------------------------------------------------------------
+- Currently money moves on WhatsApp only (no payment gateway in the app).
+- The likely future option for the Indian market is RAZORPAY:
+  - Supports UPI (what most Indians use), cards, netbanking, wallets.
+  - Needs a Razorpay account + KYC (business PAN/current account details).
+    Until that's done, Razorpay provides a TEST mode to try it out.
+  - Fees are roughly 2% for cards and a small rate for UPI (exact rates vary,
+    check razorpay.com/pricing before deciding).
+- What it would look like in the app: a "Buy PRO" / "Pay now" button opens
+  Razorpay's payment screen; when payment succeeds (verified by webhook),
+  the app automatically sets the user's plan to PRO for 30 days - same as the
+  admin pressing "Upgrade to Pro" today. No manual WhatsApp step needed.
+- Stripe also works in India but onboarding/KYC is heavier; for this app
+  Razorpay is the simpler fit. Nothing to build until Nitesh decides to go
+  ahead and gets a Razorpay account.
+
+
+
+15) AUTOMATED TESTS (tests/ folder - added after all manual testing)
+------------------------------------------------------------------
+- 62 API + page tests covering the WHOLE flow: admin/user login, /api/me,
+  lead create/edit/delete, contact masking (FREE/PRO/guest), admin users
+  CRUD, plan upgrade/renew/downgrade, self-protection, page smoke tests, and
+  8 AI extraction tests (rich message, whatsapp+website, no-budget fallback,
+  missing-field defaults, auth, empty message, rate limit).
+- They hit the real dev server / real Firebase project, so they need the
+  dev server running:
+      1. npm run dev        (keep running in another window)
+      2. npm test           (in another window)
+- They create temporary users/leads and delete them afterwards.
+- To test the LIVE site instead of localhost:
+      npm run test:prod
+  (note: running it against production creates real data briefly - it cleans
+   up, but avoid running it near real users).
+- The admin idToken is cached to a temp file (60s TTL) and /api/login allows
+  10 tries/min, so running the suite repeatedly no longer trips the login
+  rate limit.
+- The Groq fallback test is gated behind TEST_GROQ=1 (so it is skipped in a
+  normal run, since it needs the server started with AI_PROVIDER_FORCE=groq):
+      $env:AI_PROVIDER_FORCE='groq'; $env:TEST_GROQ='1'; npx next dev
+      node --test --test-name-pattern="Groq fallback" tests/ai-extract.test.mjs
+- NOTE: the ai-extract rate-limit test intentionally trips the 15/min endpoint
+  limit for 60s, and node --test runs files in parallel, so it is the LAST
+  test in its file. Rerunning the suite within a minute can 429 the AI tests;
+  wait a minute.
+- Useful commands: node --test "tests/*.test.mjs" runs everything.
+
+
+16) NEW BUSINESS RULES - 8-TASK LIST (AGREED, NOT BUILT YET)
+-----------------------------------------------------------
+Status codes: [ ] = planned / not built yet.
+
+1. PRO = maximum 2 devices (one login)
+   - Applies to PRO members ONLY. FREE / signed-out people have no limits.
+   - A PRO account can log in from up to 2 devices. A 3rd device is blocked
+     with a friendly message.
+   - How it works (plain): every device gets a secret mark. The app remembers
+     the marks on a PRO account; a 3rd, new mark is blocked. Existing devices
+     keep working. If a device clears its browser data it looks "new" - a
+     "remove device" tool is planned later to fix that.
+   - Status: [ ] not built yet.
+
+2. WhatsApp message - remove "leadflu" and make it smarter
+   - The pre-typed WhatsApp message must NOT contain the word "leadflu".
+   - Make it a simple template related to the lead (NO AI - overkill), e.g.
+     "Hi, I'm a video editor and I'd like to apply for your <lead title> post."
+   - Users can edit the message in WhatsApp before sending anyway.
+   - Status: [x] built locally (test on the lead page, then approve to go live).
+
+3. Blur ONLY the contact details
+   - Today the locked/blurred block hides too much and takes too much space.
+   - Want: only email / number / website are hidden. Price, title, description
+     and everything else stays fully visible. Locked section small and neat.
+   - Status: [x] built locally (test on a PRO/HOT lead page, then approve).
+
+4. No USD label
+   - Show exactly what the admin typed for cost/price. No extra "USD" label
+     anywhere. Old leads keep whatever text is in them (data is not touched).
+   - Status: [x] built locally (test on any lead page, then approve).
+
+5. Lead form - keep it minimal
+   - Title + description stay required. Of the contact fields, AT LEAST ONE of
+     email / number / website is required (not all three).
+   - Removed the numeric budget field and the "access required" field.
+   - Renamed "budget string" to a simple "Cost / price".
+   - The Lead Type decides everything (see rule 6).
+   - Status: [x] built locally (test in the admin panel, then approve).
+
+6. WHO SEES WHAT - the core rule (Lead Type decides)
+   - FREE lead      : everyone sees it, contacts open to everyone.
+   - FEATURED lead  : everyone sees it, contacts open to everyone.
+   - PRO lead       : everyone sees it in the list, but contacts visible ONLY
+                      to PRO members and admin. Everyone else sees it locked.
+   - HOT lead       : same as PRO - everyone sees it in the list, contacts only
+                      for PRO members and admin.
+   - Nothing disappears from any list. Locking is ONLY on the contact side.
+   - No separate "access type" - Lead Type alone decides everything.
+   - Status: [x] built locally (test as signed-out + as testpro, then approve).
+
+7. Admin can edit all user details
+   - In the Users panel, admin can view and edit everything about a user:
+     name, plan, PRO expiry, and reset the password.
+   - Status: [ ] not built yet.
+
+8. Separate test site (staging)
+   - A second copy so everything can be tested safely before going live:
+     - New git branch -> hosted on Vercel under its own URL.
+     - Separate database in a NEW, separate Firebase project (safest, free;
+       a mix-up then can never touch the real data).
+     - Copy the real leads + users into the test database.
+     - Test there, then merge to production.
+   - Status: [ ] not built yet. (Set this up BEFORE building rules 1, 6, 7.)
+
+DECISIONS RECORDED (so nothing is lost):
+- There is no "FREE user" tier anymore: a person is either a PRO member or
+  everyone else (signed out, normal, or expired PRO - all treated the same).
+- PRO and HOT leads are "visible but locked" for non-PRO people - they still
+  show up in the list; only the contact block is locked.
+- Device limit is PRO-only; FREE/signed-out has no device limits.
+- WhatsApp prefill uses a static template, no AI.
+- AI Auto-Fill now writes a SHORT, natural job title (max 60 characters) and a
+  2-4 sentence summary instead of repeating the whole pasted message. (3 Aug 2026)

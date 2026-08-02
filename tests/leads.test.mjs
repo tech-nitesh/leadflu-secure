@@ -213,7 +213,7 @@ async function createLeadFor(accessType) {
   const { status, json } = await api('/api/leads', {
     method: 'POST',
     token: adminToken,
-    body: makeLead({ accessType }),
+    body: makeLead({ accessType, leadType: accessType }),
   });
   assert.equal(status, 201, `creating ${accessType} lead should succeed`);
   createdLeadIds.push(json.lead.id);

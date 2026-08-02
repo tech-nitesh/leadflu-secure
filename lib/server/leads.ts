@@ -27,7 +27,7 @@ function toUser(ctx: AuthContext): User {
 }
 
 function canSeeContact(lead: Lead, ctx: AuthContext): boolean {
-  if (lead.accessType === 'FREE') return true;
+  if (lead.leadType === 'FREE' || lead.leadType === 'FEATURED') return true;
   return ctx.isAdmin || ctx.plan === 'PRO';
 }
 
@@ -65,12 +65,14 @@ export async function createLead(data: Partial<Lead>): Promise<{ lead: Lead | nu
 
   const docRef = getDb().collection(LEADS_COLLECTION).doc();
   const now = Date.now();
+  const budgetNumeric = Number(data.budgetNumeric);
+  const hasBudget = data.budgetNumeric !== undefined && data.budgetNumeric !== null && !isNaN(budgetNumeric);
   const lead: Lead = {
     id: docRef.id,
     title: (data.title || '').trim(),
     description: (data.description || '').trim(),
-    budgetNumeric: Number(data.budgetNumeric) || 0,
-    budgetString: data.budgetString?.trim() || `$${Number(data.budgetNumeric) || 0}`,
+    budgetNumeric: hasBudget ? budgetNumeric : 0,
+    budgetString: data.budgetString?.trim() || (hasBudget ? `$${budgetNumeric}` : ''),
     currency: data.currency || 'USD',
     platform: data.platform || 'Other',
     category: data.category || 'Other',

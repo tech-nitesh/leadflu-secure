@@ -5,14 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LeadCard } from '@/components/lead-card';
-import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap, Check, Crown, CalendarClock, Copy, Globe } from 'lucide-react';
+import { ArrowLeft, Bookmark, Lock, Mail, MessageCircle, Share2, Zap, Check, CalendarClock, Copy, Globe } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getSanitizedLead, canAccessLeadContact } from '@/lib/security';
 import { whatsappLink } from '@/lib/whatsapp';
 import { toast } from '@/lib/toast';
-
-const PRO_BENEFITS = ['Full client contact details', 'Priority access to premium gigs', 'New PRO leads first'];
 
 export default function LeadDetailPage() {
   const { id } = useParams();
@@ -82,7 +80,7 @@ export default function LeadDetailPage() {
   const waHref = (number: string) => {
     const digits = number.replace(/\D/g, '');
     if (!digits) return '#';
-    return `https://wa.me/${digits}?text=${encodeURIComponent('Hi, I found your gig on LeadFlu and I would like to apply.')}`;
+    return `https://wa.me/${digits}?text=${encodeURIComponent(`Hi, I'm a video editor and I'd like to apply for your ${lead.title} post.`)}`;
   };
 
   const website =
@@ -141,16 +139,14 @@ export default function LeadDetailPage() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-white/40 to-white/10 dark:from-white/10 dark:to-white/5 backdrop-blur-md rounded-3xl p-6 mb-8 border border-white/40 dark:border-white/10 shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">Budget</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{lead.budgetString}</p>
+        {lead.budgetString && (
+          <div className="bg-gradient-to-br from-white/40 to-white/10 dark:from-white/10 dark:to-white/5 backdrop-blur-md rounded-3xl p-6 mb-8 border border-white/40 dark:border-white/10 shadow-lg">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">Budget</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{lead.budgetString}</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">Currency</p>
-            <p className="font-semibold text-zinc-900 dark:text-zinc-50">{lead.currency}</p>
-          </div>
-        </div>
+        )}
 
         <div className="mb-8">
           <h3 className="text-lg font-bold mb-3">Job Description</h3>
@@ -242,24 +238,16 @@ export default function LeadDetailPage() {
           </div>
 
           {isLocked && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/20 dark:bg-zinc-950/20 backdrop-blur-sm rounded-3xl">
-              <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl text-center max-w-[300px] w-full mx-4 border border-white/40 dark:border-white/10">
-                <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Lock className="w-8 h-8" />
-                </div>
-                <h4 className="font-bold text-lg mb-2">Pro Member Only</h4>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Unlock this lead&apos;s contact details by requesting a PRO membership.</p>
-                <ul className="text-left space-y-2 mb-6">
-                  {PRO_BENEFITS.map((benefit) => (
-                    <li key={benefit} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
-                      <Check className="w-4 h-4 text-blue-500 shrink-0" /> {benefit}
-                    </li>
-                  ))}
-                </ul>
-                <Button onClick={handleUnlock} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-6 font-semibold shadow-lg shadow-green-500/25">
-                  <MessageCircle className="w-5 h-5 mr-2" /> Unlock on WhatsApp
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+              <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-2xl text-center max-w-[320px] w-full mx-4 border border-white/40 dark:border-white/10">
+                <h4 className="font-bold mb-1 flex items-center justify-center gap-1.5">
+                  <Lock className="w-4 h-4" /> Contact details locked
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Visible to PRO members only.</p>
+                <Button onClick={handleUnlock} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full py-3 font-semibold shadow-lg shadow-green-500/25 text-sm">
+                  <MessageCircle className="w-4 h-4 mr-2" /> Unlock on WhatsApp
                 </Button>
-                <p className="text-[11px] text-zinc-400 mt-3">Membership is granted by the admin after you reach out on WhatsApp.</p>
+                <p className="text-[11px] text-zinc-400 mt-2">Membership is granted by the admin after you reach out on WhatsApp.</p>
               </div>
             </div>
           )}

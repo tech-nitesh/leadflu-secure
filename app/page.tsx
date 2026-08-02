@@ -25,26 +25,30 @@ function SkeletonCard() {
 }
 
 export default function Home() {
-  const { leads, currentUser, fetchLeadsFromApi } = useStore();
+  const { leads, currentUser, fetchLeadsFromApi, leadsLoadedAt } = useStore();
   const [isMounted, setIsMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
 
   useEffect(() => {
-    const handle = requestAnimationFrame(async () => {
+    const handle = requestAnimationFrame(() => {
       setIsMounted(true);
-      await fetchLeadsFromApi();
-      setLoaded(true);
+      if (leadsLoadedAt) {
+        setLoaded(true);
+        fetchLeadsFromApi();
+      } else {
+        fetchLeadsFromApi().then(() => setLoaded(true));
+      }
     });
     return () => cancelAnimationFrame(handle);
-  }, [fetchLeadsFromApi]);
+  }, [fetchLeadsFromApi, leadsLoadedAt]);
 
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
   const refresh = async () => {
     setRefreshing(true);
-    await fetchLeadsFromApi();
+    await fetchLeadsFromApi(true);
     setLoaded(true);
     setRefreshing(false);
   };
@@ -109,7 +113,7 @@ export default function Home() {
                 </h2>
               </div>
 
-              <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar px-6 pb-6 pt-2 gap-4 -mx-2" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar px-6 pb-6 pt-2 gap-4" style={{ scrollbarWidth: 'none' }}>
                 {hotLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} featured />
                 ))}
