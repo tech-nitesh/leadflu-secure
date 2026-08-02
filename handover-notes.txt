@@ -378,3 +378,36 @@ DECISIONS RECORDED (so nothing is lost):
 - Email button now has a template too (same style as WhatsApp): clicking email
   on a lead page opens the mail app with a subject "Application for <title>"
   and a one-line body already filled in. The person can edit it before sending.
+
+
+19) STAGING BRANCH - WORK IN PROGRESS (3 Aug 2026)
+--------------------------------------------------
+- Branch `staging` was created from `main` (not pushed yet).
+- Purpose: test everything safely before it goes live, without ever touching
+  the real database.
+- Google must NOT index the test site (two identical sites = duplicate
+  content = lower ranking). So the app now has a no-index switch:
+  - If the env var SEO_NOINDEX=1 is set, the site tells Google to stay away
+    (robots.txt says "stay out" AND every page carries a "noindex" tag).
+  - Production never sets SEO_NOINDEX, so the live site stays indexable.
+  - ACTION NEEDED: set SEO_NOINDEX=1 on the STAGING Vercel project/branch
+    ONLY. Never on the production project.
+- STILL TO DO: point the staging site at a separate Firebase project
+  (owner creates leadflu-staging project + sends its web config + service
+  account key), then add the data-copy script.
+- DATA COPIED (3 Aug): the script scripts/copy-db-to-staging.mjs copies the
+  REAL database into the STAGING database. It is READ-ONLY on production and
+  writes only to staging. Run it again any time with:
+      node scripts/copy-db-to-staging.mjs
+  It copies ALL 17 leads + every user EXCEPT vikesh2003 (both of that
+  account's entries). Real passwords cannot be exported from Firebase, so:
+  - the three test accounts keep their real passwords (see section 4),
+  - every other copied account (editingbynitesh, nirwan) gets the
+    staging-only password  Staging@123  - staging is just for testing, the
+    real accounts are untouched.
+- STAGING ENV FILE: .env.staging (git-ignored, never committed) holds the
+  staging Firebase config + service account + AI keys + SEO_NOINDEX=1. Copy
+  its values into the STAGING Vercel project. Never into production.
+- Admin lead list now has a search box (searches by title OR lead ID), the
+  same as the users list. This makes the lead ID that appears in WhatsApp
+  unlock messages actually useful: paste it in and the exact lead appears.

@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2, Trash2, Pencil, X } from 'lucide-react';
+import { Sparkles, Loader2, Trash2, Pencil, X, Search } from 'lucide-react';
 import { Lead } from '@/lib/types';
 import { format } from 'date-fns';
 import { getFirebaseIdToken } from '@/lib/firebase';
@@ -44,6 +44,7 @@ export default function AdminLeadsPage() {
     status: 'Active',
   });
   const [formData, setFormData] = useState<Partial<Lead>>(emptyForm);
+  const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -168,6 +169,11 @@ export default function AdminLeadsPage() {
     setFormData({ ...emptyForm });
   };
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredLeads = leads.filter(
+    (lead) => !q || `${lead.title} ${lead.id}`.toLowerCase().includes(q)
+  );
+
   const handleDeleteClick = async (id: string) => {
     if (confirmDeleteId !== id) {
       setConfirmDeleteId(id);
@@ -196,7 +202,17 @@ export default function AdminLeadsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {leads.map(lead => (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by title or lead ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 rounded-full bg-zinc-50 dark:bg-zinc-900"
+                />
+              </div>
+              {filteredLeads.map(lead => (
                 <div key={lead.id} className="flex items-center justify-between gap-2 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
                   <div className="min-w-0">
                     <h4 className="font-semibold truncate">{lead.title}</h4>
@@ -218,7 +234,7 @@ export default function AdminLeadsPage() {
                   </div>
                 </div>
               ))}
-              {leads.length === 0 && <p className="text-zinc-500 text-sm">No leads found.</p>}
+              {filteredLeads.length === 0 && <p className="text-zinc-500 text-sm">{q ? 'No leads match your search.' : 'No leads found.'}</p>}
             </div>
           </CardContent>
         </Card>

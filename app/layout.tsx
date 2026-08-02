@@ -5,9 +5,12 @@ import { StoreHydrator } from '@/components/store-hydrator';
 import { AuthProvider } from '@/components/auth-provider';
 import { Toast } from '@/components/toast';
 
+const isNoindex = process.env.SEO_NOINDEX === '1';
+
 export const metadata: Metadata = {
   title: 'Lead Management Platform',
   description: 'Premium Lead Management Platform for Video Editors & Freelancers',
+  ...(isNoindex ? { robots: { index: false, follow: false } } : {}),
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
