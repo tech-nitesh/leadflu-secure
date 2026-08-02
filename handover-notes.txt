@@ -411,3 +411,19 @@ DECISIONS RECORDED (so nothing is lost):
 - Admin lead list now has a search box (searches by title OR lead ID), the
   same as the users list. This makes the lead ID that appears in WhatsApp
   unlock messages actually useful: paste it in and the exact lead appears.
+- STAGING SITE IS LIVE: https://leadflu-dev.vercel.app (verified 3 Aug 2026 -
+  page loads, robots.txt says "stay out", noindex tag present, /api/leads
+  returns the 17 copied leads from the STAGING database, admin login issues a
+  staging token). Owner still needs to add leadflu-dev.vercel.app to the
+  leadflu-staging Firebase project: Authentication > Settings > Authorized
+  domains, or browser logins will say "domain not authorized".
+
+FOR LATER - FIREBASE LOCATION (DECIDED 3 Aug 2026):
+- The real (production) Firestore database was created in INDIA (Delhi).
+  This location is FIXED FOREVER - Firestore cannot be moved to another
+  region; the only "move" is a brand-new project + copying data over.
+- Clients are in the US. Every database read travels to India and back:
+  roughly 0.2-0.3 seconds extra per page load for US users. Noticeable
+  but small - pages just feel slightly slower. Nothing breaks.
+- DECISION: leave it as-is. Moving costs a lot of risk for a ~0.3s gain.
+  Revisit ONLY if the site grows large or US clients complain about speed.

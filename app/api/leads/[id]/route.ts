@@ -14,6 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const ctx = await authenticateOrGuest(req);
+  if (ctx instanceof NextResponse) return ctx;
 
   const { id } = await params;
   try {

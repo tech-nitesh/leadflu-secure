@@ -85,7 +85,7 @@ export async function createUser(input: {
 
 export async function updateUser(
   id: string,
-  updates: { plan?: Plan; name?: string }
+  updates: { plan?: Plan; name?: string; expiryDate?: number | null }
 ): Promise<AdminUser | null> {
   const db = getDb();
   const docRef = db.collection(USERS_COLLECTION).doc(id);
@@ -102,10 +102,12 @@ export async function updateUser(
   if (updates.plan) {
     patch.plan = updates.plan;
     if (updates.plan === 'PRO') {
-      patch.expiryDate = Date.now() + PRO_DURATION_MS;
+      patch.expiryDate = updates.expiryDate === undefined ? Date.now() + PRO_DURATION_MS : updates.expiryDate;
     } else {
       patch.expiryDate = null;
     }
+  } else if (updates.expiryDate !== undefined) {
+    patch.expiryDate = updates.expiryDate;
   }
 
   await docRef.set(patch, { merge: true });
@@ -140,5 +142,14 @@ export async function deleteUser(id: string): Promise<boolean> {
   if (!doc.exists) return false;
   await db.collection(USERS_COLLECTION).doc(id).delete();
   await auth.deleteUser(id).catch(() => {});
+  return true;
+}
+
+export async function resetPassword(id: string, password: string): Promise<boolean> {
+  const auth = getAuth();
+  const db = getDb();
+  const doc = await db.collection(USERS_COLLECTION).doc(id).get();
+  if (!doc.exists) return false;
+  await auth.updateUser(id, { password });
   return true;
 }

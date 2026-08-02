@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { FieldValue } from 'firebase-admin/firestore';
 import { verifyFirebaseIdToken, VerifiedUser } from './verify';
 import { adminAuth, adminDb, isServerConfigured } from './firebase-admin';
+
+export const MAX_PRO_DEVICES = 2;
+export const DEVICE_LIMIT_MESSAGE =
+  'This PRO account is already in use on 2 devices. Please use one of your existing devices, or contact the admin for help.';
 
 export function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS || '';
@@ -97,7 +102,54 @@ function guestContext(): AuthContext {
   return { user: { uid: '', email: null, email_verified: false }, role: 'Guest', plan: 'FREE', isAdmin: false };
 }
 
-export async function authenticateOrGuest(req: NextRequest): Promise<AuthContext> {
+// PRO members may use the account on up to MAX_PRO_DEVICES different
+// browsers/devices. Each browser sends a secret "device stamp" header, and the
+// account remembers which stamps it has seen. A brand-new 3rd device is
+// blocked (friendly message) - the existing 2 devices keep working. The admin
+// account and FREE/signed-out users are never limited.
+async function enforceDeviceLimit(uid: string, req: NextRequest): Promise<NextResponse | null> {
+  if (!adminDb) return null;
+  const deviceId = req.headers.get('x-device-id')?.trim();
+  if (!deviceId) return null;
+
+  try {
+    const ref = adminDb.collection('users').doc(uid);
+    const doc = await ref.get();
+    if (!doc.exists) return null;
+    const data = doc.data() || {};
+    const devices = Array.isArray(data.devices)
+      ? data.devices.filter((d: unknown): d is string => typeof d === 'string')
+      : [];
+
+    if (devices.includes(deviceId)) return null;
+
+    if (devices.length >= MAX_PRO_DEVICES) {
+      return NextResponse.json(
+        { error: DEVICE_LIMIT_MESSAGE, code: 'DEVICE_LIMIT', success: false },
+        { status: 403 }
+      );
+    }
+
+    await ref.update({ devices: FieldValue.arrayUnion(deviceId) });
+  } catch (error) {
+    console.error('Device limit check failed:', error);
+  }
+  return null;
+}
+
+async function applyDeviceLimit(
+  uid: string,
+  role: 'Guest' | 'Admin',
+  plan: 'FREE' | 'PRO',
+  req: NextRequest
+): Promise<NextResponse | null> {
+  if (role === 'Guest' && plan === 'PRO') {
+    return enforceDeviceLimit(uid, req);
+  }
+  return null;
+}
+
+export async function authenticateOrGuest(req: NextRequest): Promise<AuthContext | NextResponse> {
   const header = req.headers.get('authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
 
@@ -122,6 +174,8 @@ export async function authenticateOrGuest(req: NextRequest): Promise<AuthContext
   if (!verified) return guestContext();
 
   const { role, plan, username, name } = await resolveRoleAndPlan(verified.uid, verified.email);
+  const blocked = await applyDeviceLimit(verified.uid, role, plan, req);
+  if (blocked) return blocked;
   return { user: verified, role, plan, isAdmin: role === 'Admin', username, name };
 }
 
@@ -156,6 +210,8 @@ export async function authenticate(req: NextRequest): Promise<AuthContext | Next
   }
 
   const { role, plan, username, name } = await resolveRoleAndPlan(verified.uid, verified.email);
+  const blocked = await applyDeviceLimit(verified.uid, role, plan, req);
+  if (blocked) return blocked;
   return { user: verified, role, plan, isAdmin: role === 'Admin', username, name };
 }
 

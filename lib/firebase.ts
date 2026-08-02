@@ -64,6 +64,51 @@ export const ADMIN_USERNAME = (process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'adminl
 
 export const USERNAME_DOMAIN = '@leadflu.app';
 
+// A secret "device stamp" saved in this browser. PRO accounts remember which
+// stamps they have been used on (max 2), so a 3rd device is blocked at login.
+// Clearing browser data creates a new stamp (see handover notes - that edge
+// case is handled by the planned "remove device" tool, P3/#1b).
+export function getDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    let id = window.localStorage.getItem('leadflu_device_id');
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `dev_${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+      window.localStorage.setItem('leadflu_device_id', id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+async function assertDeviceAllowed(user: User): Promise<void> {
+  const deviceId = getDeviceId();
+  if (!deviceId) return;
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch('/api/me', {
+      headers: { Authorization: `Bearer ${token}`, 'x-device-id': deviceId },
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      if (data?.code === 'DEVICE_LIMIT') {
+        await auth.signOut();
+        const err = new Error(data.error || 'This PRO account is already in use on 2 devices.');
+        (err as any).code = 'auth/device-limit';
+        throw err;
+      }
+    }
+  } catch (error) {
+    if ((error as any)?.code === 'auth/device-limit') throw error;
+    // Any other failure (network, etc.) must NOT block a normal login.
+  }
+}
+
 export function usernameToEmail(username: string): string {
   return `${username.trim().toLowerCase()}${USERNAME_DOMAIN}`;
 }
@@ -90,6 +135,7 @@ export async function loginWithUsername(username: string, password: string): Pro
     return adminLoginWithCredentials(normalized, password);
   }
   const result = await signInWithEmailAndPassword(auth, usernameToEmail(normalized), password);
+  await assertDeviceAllowed(result.user);
   return result.user;
 }
 
@@ -190,6 +236,8 @@ export function getAuthErrorMessage(error: any, opts?: { usernameLogin?: boolean
     case 'auth/invalid-credential':
     case 'auth/user-not-found':
       return 'Invalid username or password.';
+    case 'auth/device-limit':
+      return 'This PRO account is already in use on 2 devices. Please use one of your existing devices, or contact the admin for help.';
     case 'auth/wrong-password':
       return 'Invalid username or password.';
     case 'auth/too-many-requests':

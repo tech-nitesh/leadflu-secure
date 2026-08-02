@@ -53,12 +53,13 @@ export function admin() {
   return _admin;
 }
 
-export async function api(pathname, { method = 'GET', token, body } = {}) {
+export async function api(pathname, { method = 'GET', token, body, headers } = {}) {
   const res = await fetch(`${BASE_URL}${pathname}`, {
     method,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(headers || {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

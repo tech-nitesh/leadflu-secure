@@ -149,6 +149,11 @@ End every completed task with a short, plain summary that includes:
   - `npm run lint` (must have no new warnings)
   - `npx tsc --noEmit` (must finish with no errors)
   - `npm test` (must pass; needs the dev server running: `npm run dev` first)
+- **AI tests are COSTLY (Gemini is paid) - keep them out of `npm test`.** The normal
+  test run never calls the AI endpoint. The AI extraction tests live separately in
+  `tests/ai/` and run ONLY right before a push, with `npm run test:ai`. Don't run
+  `npm test` and `npm run test:ai` back-to-back: the AI endpoint rate-limits itself
+  (15/min) and will 429 the second run.
 - If the change is visual only, still make sure the page loads at `http://localhost:3000`.
 - Per the Zero-Trust rules, also trace the empty/missing-value cases (they must fail
   gracefully) and, if the change is visible, tell the owner what to check.

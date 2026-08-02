@@ -7,7 +7,7 @@ import {
   createFixtureUser,
   deleteFixtureUser,
   randomSuffix,
-} from './helpers.mjs';
+} from '../helpers.mjs';
 
 const suffix = randomSuffix();
 const freeUsername = `taifree${suffix}`;

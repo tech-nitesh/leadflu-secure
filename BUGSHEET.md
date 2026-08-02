@@ -25,7 +25,7 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
 | 3 | Fix blur (too much hidden) | P1 | MVP | UX fix | DONE - pushed live (3 Aug) |
 | 5 | Minimal lead form | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
 | 6 | Visibility: all leads shown, contacts locked | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
-| 8 | Separate test site + test database | P0 (prereq) | MVP | Setup | Not started |
+| 8 | Separate test site + test database | P0 (prereq) | MVP | Setup | DONE - staging live (3 Aug) |
 | 1 | PRO max 2 devices | P2 | Post | Feature | Not started |
 | 7 | Admin edits all user details | P2 | Post | Feature | Not started |
 | 1b | Owner can remove a lost device | P3 | Post | Feature | Later |
@@ -93,22 +93,14 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
 - **Open**: CONFIRMED (3 Aug): PRO + HOT hide contacts; FREE + FEATURED open to everyone.
 
 ### #8 — Separate test site + test database — P0 prereq · MVP · Setup
-- **Your plan** (good): a separate git branch → hosted on Vercel under its own URL →
-  that branch uses a different database (different env vars) → we copy the real data
-  into it for testing → once everything passes, we merge the code back to production.
-- **How**:
-  1. New branch, e.g. `staging`.
-  2. Second Vercel project pointing at that branch → its own URL.
-  3. Different database via env vars on that project.
-  4. A small one-time script copies **leads + users** from the real database to the
-     test database.
-  5. Test everything there, then merge.
-- **Open — one choice to make**: the test database can be
-  **(a)** a second database inside the same Firebase project (simplest, free, but code
-  must support picking a non-default database), or
-  **(b)** a brand-new separate Firebase project (cleanest, fully isolated, but needs a
-  new service-account key). I recommend **(b)** for zero risk to your real data. Which
-  do you prefer?
+- **DONE (3 Aug)**: staging branch `staging` created and pushed; staging site
+  live at **https://leadflu-dev.vercel.app** with its own Firebase project
+  (`leadflu-staging`); SEO no-index switch active so Google never indexes it;
+  real data copied in (all 17 leads + every user except vikesh2003) via
+  `scripts/copy-db-to-staging.mjs`. Verified: page loads, admin login works.
+- Remaining owner step: add `leadflu-dev.vercel.app` to the staging Firebase
+  project's Authentication > Authorized domains.
+- **Next**: build #1 and #7 on the `staging` branch, test them here, then merge.
 
 ### #1 — PRO max 2 devices — P2 · Post · Feature
 - **Your answers**: applies to PRO only (FREE/signed-out = no limits). Owner-removes-device

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "clean": "next clean",
     "test": "node --test \"tests/*.test.mjs\"",
+    "test:ai": "node --test \"tests/ai/*.test.mjs\"",
     "test:prod": "set TEST_BASE_URL=https://leadflu-secure.vercel.app&& node --test \"tests/*.test.mjs\""
   },
   "dependencies": {

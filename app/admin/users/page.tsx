@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Crown, Shield, User, UserPlus, Loader2, Trash2, RefreshCw, Eye, EyeOff, Search as SearchIcon } from 'lucide-react';
+import { Crown, Shield, User, UserPlus, Loader2, Trash2, RefreshCw, Eye, EyeOff, Search as SearchIcon, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { getFirebaseIdToken } from '@/lib/firebase';
 
@@ -34,6 +34,12 @@ export default function AdminUsersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPlan, setEditPlan] = useState<'PRO' | 'FREE'>('FREE');
+  const [editExpiry, setEditExpiry] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => setIsMounted(true));
@@ -159,6 +165,57 @@ export default function AdminUsersPage() {
     }
   };
 
+  const toDateInput = (ts: number) => {
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const startEdit = (user: AdminUser) => {
+    setEditingId(user.id);
+    setEditName(user.name || user.username || '');
+    setEditPlan(user.plan);
+    setEditExpiry(user.expiryDate ? toDateInput(user.expiryDate) : '');
+    setEditPassword('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    setSavingEdit(true);
+    try {
+      const newPassword = editPassword.trim();
+      if (newPassword && newPassword.length < 6) {
+        setError('New password must be at least 6 characters.');
+        return;
+      }
+      const body: any = { name: editName.trim() };
+      if (editPlan === 'PRO') {
+        body.plan = 'PRO';
+        body.expiryDate = editExpiry ? new Date(`${editExpiry}T12:00:00`).getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000;
+      } else {
+        body.plan = 'FREE';
+        body.expiryDate = null;
+      }
+      if (newPassword) body.password = newPassword;
+      const data = await callApi(editingId, 'PUT', body);
+      if (data?.user) {
+        const now = Date.now();
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === editingId
+              ? { ...data.user, expired: data.user.plan === 'PRO' && !!data.user.expiryDate && data.user.expiryDate < now }
+              : u
+          )
+        );
+        setEditingId(null);
+      }
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (!isMounted) return <div className="p-6">Loading...</div>;
 
   const q = searchQuery.trim().toLowerCase();
@@ -249,8 +306,9 @@ export default function AdminUsersPage() {
               {filteredUsers.map((user) => {
                 const isAdminRow = user.role === 'Admin';
                 return (
-                  <div key={user.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center gap-4 flex-wrap min-w-0">
+                  <div key={user.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-wrap min-w-0">
                       <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                         {isAdminRow ? <Shield className="w-6 h-6 text-zinc-500" /> : <User className="w-6 h-6 text-zinc-500" />}
                       </div>
@@ -288,10 +346,56 @@ export default function AdminUsersPage() {
                         <Button variant="outline" size="sm" disabled={updatingId === user.id} onClick={() => removeUser(user)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 gap-1">
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                        <Button variant="outline" size="sm" disabled={updatingId === user.id} onClick={() => startEdit(user)} className="gap-2">
+                          <Pencil className="w-4 h-4" /> Edit
+                        </Button>
                       </div>
                     ) : (
                       <Badge variant="outline" className="text-[10px] uppercase tracking-wider self-start md:self-auto">Fixed account</Badge>
                     )}
+                  </div>
+
+                  {editingId === user.id && (
+                    <div className="mt-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Full Name</label>
+                          <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Plan</label>
+                          <div className="flex gap-2">
+                            <Button type="button" variant={editPlan === 'FREE' ? 'default' : 'outline'} size="sm" onClick={() => setEditPlan('FREE')} className="rounded-full">Free</Button>
+                            <Button type="button" variant={editPlan === 'PRO' ? 'default' : 'outline'} size="sm" onClick={() => setEditPlan('PRO')} className="rounded-full">PRO</Button>
+                          </div>
+                        </div>
+                        {editPlan === 'PRO' && (
+                          <div>
+                            <label className="text-sm font-medium mb-1 block">PRO Expiry</label>
+                            <Input type="date" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)} />
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">New Password (optional)</label>
+                          <Input
+                            type="text"
+                            placeholder="Min 6 characters"
+                            value={editPassword}
+                            onChange={(e) => setEditPassword(e.target.value)}
+                            autoComplete="new-password"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveEdit} disabled={savingEdit} className="gap-2">
+                          {savingEdit && <Loader2 className="w-4 h-4 animate-spin" />} Save changes
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)} disabled={savingEdit}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   </div>
                 );
               })}

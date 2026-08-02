@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   }
 
   const ctx = await authenticateOrGuest(req);
+  if (ctx instanceof NextResponse) return ctx;
 
   try {
     const leads = await listLeads(ctx);

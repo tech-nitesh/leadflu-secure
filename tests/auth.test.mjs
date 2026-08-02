@@ -105,3 +105,41 @@ test('fixture users exist in admin SDK auth', async () => {
   const user = await fb.auth().getUserByEmail(`${freeUsername}@leadflu.app`);
   assert.equal(user.uid, freeUid);
 });
+
+test('PRO device limit: 1st and 2nd devices allowed, 3rd blocked', async () => {
+  const creds = await signInAsUsername(proUsername, proPassword);
+  const first = await api('/api/me', { token: creds.idToken, headers: { 'x-device-id': 'dev-one' } });
+  assert.equal(first.status, 200, 'first device should be allowed');
+  const second = await api('/api/me', { token: creds.idToken, headers: { 'x-device-id': 'dev-two' } });
+  assert.equal(second.status, 200, 'second device should be allowed');
+  const third = await api('/api/me', { token: creds.idToken, headers: { 'x-device-id': 'dev-three' } });
+  assert.equal(third.status, 403, 'third device should be blocked');
+  assert.equal(third.json.code, 'DEVICE_LIMIT');
+  assert.match(third.json.error, /2 devices/i);
+});
+
+test('PRO device limit: a known device is always allowed', async () => {
+  const creds = await signInAsUsername(proUsername, proPassword);
+  const again = await api('/api/me', { token: creds.idToken, headers: { 'x-device-id': 'dev-one' } });
+  assert.equal(again.status, 200);
+});
+
+test('FREE user is never device-limited', async () => {
+  const creds = await signInAsUsername(freeUsername, freePassword);
+  for (const device of ['dev-f1', 'dev-f2', 'dev-f3', 'dev-f4']) {
+    const r = await api('/api/me', { token: creds.idToken, headers: { 'x-device-id': device } });
+    assert.equal(r.status, 200, `FREE user should always be allowed on ${device}`);
+  }
+});
+
+test('admin is never device-limited', async () => {
+  const r = await api('/api/me', { token: adminToken, headers: { 'x-device-id': 'dev-admin-1' } });
+  assert.equal(r.status, 200);
+});
+
+test('PRO device limit blocks lead list access too', async () => {
+  const creds = await signInAsUsername(proUsername, proPassword);
+  const r = await api('/api/leads', { token: creds.idToken, headers: { 'x-device-id': 'dev-four' } });
+  assert.equal(r.status, 403);
+  assert.equal(r.json.code, 'DEVICE_LIMIT');
+});

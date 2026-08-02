@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/server/auth';
 import { isServerConfigured } from '@/lib/server/firebase-admin';
-import { updateUser, renewPro, deleteUser } from '@/lib/server/users';
+import { updateUser, renewPro, deleteUser, resetPassword } from '@/lib/server/users';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,9 +30,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: true, user });
     }
 
-    const updates: { plan?: 'PRO' | 'FREE'; name?: string } = {};
+    if (typeof body.password === 'string' && body.password.trim()) {
+      if (body.password.length < 6) {
+        return NextResponse.json(
+          { error: 'Password must be at least 6 characters.', success: false },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updates: { plan?: 'PRO' | 'FREE'; name?: string; expiryDate?: number | null } = {};
     if (body.plan === 'PRO' || body.plan === 'FREE') updates.plan = body.plan;
     if (typeof body.name === 'string' && body.name.trim()) updates.name = body.name.trim();
+    if (body.expiryDate === null || typeof body.expiryDate === 'number') {
+      if (body.expiryDate !== null && (!Number.isFinite(body.expiryDate) || body.expiryDate <= 0)) {
+        return NextResponse.json({ error: 'Expiry date is invalid.', success: false }, { status: 400 });
+      }
+      updates.expiryDate = body.expiryDate;
+    }
 
     if (id === ctx.user.uid && updates.plan === 'FREE') {
       return NextResponse.json({ error: 'You cannot remove your own PRO access.', success: false }, { status: 400 });
@@ -40,6 +55,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const user = await updateUser(id, updates);
     if (!user) return NextResponse.json({ error: 'User not found.', success: false }, { status: 404 });
+
+    if (typeof body.password === 'string' && body.password.trim()) {
+      await resetPassword(id, body.password.trim());
+    }
+
     return NextResponse.json({ success: true, user });
   } catch (error) {
     console.error('Failed to update user:', error);

@@ -152,6 +152,58 @@ test('admin cannot downgrade their own account', async () => {
   assert.match(json.error, /own/i);
 });
 
+test('admin can edit a user name', async () => {
+  const { status, json } = await api(`/api/admin/users/${createdUid}`, {
+    method: 'PUT',
+    token: adminToken,
+    body: { name: 'Renamed User' },
+  });
+  assert.equal(status, 200);
+  assert.equal(json.user.name, 'Renamed User');
+});
+
+test('admin can set a custom PRO expiry date', async () => {
+  const expiry = Date.now() + 10 * 24 * 60 * 60 * 1000;
+  const { status, json } = await api(`/api/admin/users/${createdUid}`, {
+    method: 'PUT',
+    token: adminToken,
+    body: { plan: 'PRO', expiryDate: expiry },
+  });
+  assert.equal(status, 200);
+  assert.equal(json.user.plan, 'PRO');
+  assert.equal(json.user.expiryDate, expiry);
+});
+
+test('invalid expiry date returns 400', async () => {
+  const { status } = await api(`/api/admin/users/${createdUid}`, {
+    method: 'PUT',
+    token: adminToken,
+    body: { plan: 'PRO', expiryDate: -5 },
+  });
+  assert.equal(status, 400);
+});
+
+test('admin can reset a user password', async () => {
+  const newPassword = 'NewPass456';
+  const { status } = await api(`/api/admin/users/${createdUid}`, {
+    method: 'PUT',
+    token: adminToken,
+    body: { password: newPassword },
+  });
+  assert.equal(status, 200);
+  const creds = await signInAsUsername(username, newPassword);
+  assert.equal(creds.uid, createdUid);
+});
+
+test('short reset password is rejected', async () => {
+  const { status } = await api(`/api/admin/users/${createdUid}`, {
+    method: 'PUT',
+    token: adminToken,
+    body: { password: '123' },
+  });
+  assert.equal(status, 400);
+});
+
 test('updating an unknown user returns 404', async () => {
   const { status } = await api('/api/admin/users/does-not-exist', {
     method: 'PUT',

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Lead, User, Role, Plan } from './types';
-import { getFirebaseIdToken } from './firebase';
+import { getFirebaseIdToken, getDeviceId } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 // How long the cached lead list is considered "fresh" before the app
@@ -157,10 +157,12 @@ export const useStore = create<AppState>()(
         ) return;
         try {
           const token = await getFirebaseIdToken();
+          const deviceId = getDeviceId();
           const res = await fetch('/api/leads', {
             headers: {
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...(deviceId ? { 'x-device-id': deviceId } : {}),
             },
             cache: 'no-store'
           });
