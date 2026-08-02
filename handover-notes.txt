@@ -14,8 +14,12 @@ LAST UPDATED: 3 Aug 2026 - 8-task rules 2, 3, 4, 5, 6 BUILT LOCALLY (awaiting
               and users are not expected to renew long-term. Admin panel shows it only.
               DECISION: no payment gateway yet - payments happen on WhatsApp. Razorpay
               discussed as the likely future option for India (section 14).
-              Rules 2-6 APPROVED and pushed live today (3 Aug). Card design reworked
-              too - see section 17.
+               Rules 2-6 APPROVED and pushed live today (3 Aug). Card design reworked
+               too - see section 17.
+               3 Aug evening: two more fixes ready to push - (1) a bug where a masked
+               lead list (dots) could stay cached and show to an admin after login,
+               and (2) the email button now opens a pre-filled email like the WhatsApp
+               template. See section 18.
 
 
 1) WHAT IS THIS APP
@@ -362,3 +366,15 @@ DECISIONS RECORDED (so nothing is lost):
   Top Opportunities cards use smaller text so it fits the narrow card width.
 - If a lead has no budget, the box shows whatever the admin typed into it
   (e.g. "not disclosed" or "not present") - that is real data, not a bug.
+
+
+18) SMALL FIXES - READY TO PUSH (3 Aug 2026 evening)
+----------------------------------------------------
+- FIXED a cache bug: the lead list is cached for 60 seconds, but the masked
+  (dots) copy could stay cached and then show to an admin right after login -
+  contacts looked masked with no blur. Now the cache remembers WHICH account
+  fetched the list and silently re-fetches the moment the account changes, so
+  one person's masked view can never leak to another person's screen.
+- Email button now has a template too (same style as WhatsApp): clicking email
+  on a lead page opens the mail app with a subject "Application for <title>"
+  and a one-line body already filled in. The person can edit it before sending.

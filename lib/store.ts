@@ -14,6 +14,7 @@ interface AppState {
   users: User[];
   leads: Lead[];
   leadsLoadedAt: number | null;
+  leadsFetchedFor: string | null;
   spreadsheetId: string | null;
   setCurrentUser: (user: User | null) => void;
   applyServerProfile: (uid: string, role: Role, plan: Plan, username?: string | null, name?: string | null) => void;
@@ -37,6 +38,7 @@ export const useStore = create<AppState>()(
       users: [],
       leads: [],
       leadsLoadedAt: null,
+      leadsFetchedFor: null,
       spreadsheetId: null,
       setCurrentUser: (user) => set((state) => {
         if (!user) return { currentUser: null };
@@ -141,8 +143,18 @@ export const useStore = create<AppState>()(
         };
       }),
       fetchLeadsFromApi: async (force = false) => {
-        const { leadsLoadedAt } = get();
-        if (!force && leadsLoadedAt && Date.now() - leadsLoadedAt < LEADS_FRESH_MS) return;
+        const { leadsLoadedAt, leadsFetchedFor, currentUser } = get();
+        const viewerKey = currentUser?.id || 'guest';
+        // The cached list is per-viewer (contacts are masked by who you are).
+        // Only reuse it when it is both fresh AND was fetched for this same
+        // account - otherwise a masked list fetched as guest could leak to a
+        // signed-in admin (dots shown without the blur).
+        if (
+          !force &&
+          leadsLoadedAt &&
+          leadsFetchedFor === viewerKey &&
+          Date.now() - leadsLoadedAt < LEADS_FRESH_MS
+        ) return;
         try {
           const token = await getFirebaseIdToken();
           const res = await fetch('/api/leads', {
@@ -155,7 +167,7 @@ export const useStore = create<AppState>()(
           if (!res.ok) return;
           const data = await res.json();
           if (data.success && Array.isArray(data.leads)) {
-            set({ leads: data.leads, leadsLoadedAt: Date.now() });
+            set({ leads: data.leads, leadsLoadedAt: Date.now(), leadsFetchedFor: viewerKey });
           }
         } catch {
           // Ignore if API endpoint is unavailable

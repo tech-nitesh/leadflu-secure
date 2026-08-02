@@ -168,3 +168,15 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
   budget; numeric budget and access-required removed. (#5)
 - WhatsApp prefill: no AI, static template with the lead title. (#2)
 - Device-removal tool deferred to later (#1b).
+- Email button opens a pre-filled email (subject + one-line body) like the
+  WhatsApp template. (3 Aug 2026)
+
+---
+
+## Small fixes - READY TO PUSH (3 Aug 2026 evening)
+- FIXED a cache bug where the masked (dots) lead list could stay cached and
+  show to an admin right after login (contacts looked masked, no blur). The
+  60s cache now remembers which account fetched the list and re-fetches as
+  soon as the account changes.
+- Email link on a lead page now pre-fills subject + body (same style as the
+  WhatsApp template) instead of opening a blank email.

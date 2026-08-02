@@ -83,6 +83,12 @@ export default function LeadDetailPage() {
     return `https://wa.me/${digits}?text=${encodeURIComponent(`Hi, I'm a video editor and I'd like to apply for your ${lead.title} post.`)}`;
   };
 
+  const mailHref = (email: string) => {
+    const subject = `Application for ${lead.title}`;
+    const body = `Hi, I'm a video editor and I'd like to apply for your ${lead.title} post.`;
+    return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const website =
     Array.isArray(lead.contactDetails.socialLinks) && lead.contactDetails.socialLinks.length
       ? lead.contactDetails.socialLinks[0]
@@ -171,7 +177,7 @@ export default function LeadDetailPage() {
           
           <div className={cn("space-y-3", isLocked && "filter blur-[6px] select-none pointer-events-none")}>
             <a
-              href={`mailto:${lead.contactDetails.email}`}
+              href={mailHref(lead.contactDetails.email)}
               className="flex items-center gap-4 p-5 rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md shadow-sm hover:border-blue-400/50 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
