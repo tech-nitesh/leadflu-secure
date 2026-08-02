@@ -26,8 +26,8 @@ Both `leadflu-secure.vercel.app` and `leadflu.online` returned Vercel's
 | 5 | Minimal lead form | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
 | 6 | Visibility: all leads shown, contacts locked | P1 | MVP | Feature | DONE - pushed live (3 Aug) |
 | 8 | Separate test site + test database | P0 (prereq) | MVP | Setup | DONE - staging live (3 Aug) |
-| 1 | PRO max 2 devices | P2 | Post | Feature | Not started |
-| 7 | Admin edits all user details | P2 | Post | Feature | Not started |
+| 1 | PRO max 2 devices | P2 | Post | Feature | BUILT - on staging (3 Aug) |
+| 7 | Admin edits all user details | P2 | Post | Feature | BUILT - on staging (3 Aug) |
 | 1b | Owner can remove a lost device | P3 | Post | Feature | Later |
 | 9 | Real paging for the leads list | P3 | Post | Performance | Not started |
 
