@@ -1,5 +1,6 @@
 # LeadFlu — Editor Gigs
 
+
 A mobile-first lead management platform for video editors and freelancers. Admins
 publish client gigs ("leads") for video editing work, editors browse/search them,
 and the platform gates contact details behind a FREE/PRO access model. PRO access
@@ -9,17 +10,19 @@ is granted by the admin; unlock requests are handled over WhatsApp.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture & Data Flow](#architecture--data-flow)
-- [Tech Stack](#tech-stack)
-- [Run Locally](#run-locally)
-- [Environment Variables](#environment-variables)
-- [Firebase Setup (one-time)](#firebase-setup-one-time)
-- [Auth Model](#auth-model)
-- [How to Test](#how-to-test)
-- [Admin Panel](#admin-panel)
-- [Google Sheets Sync](#google-sheets-sync)
-- [Known Limitations](#known-limitations)
+- [LeadFlu — Editor Gigs](#leadflu--editor-gigs)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Architecture \& Data Flow](#architecture--data-flow)
+  - [Tech Stack](#tech-stack)
+  - [Run Locally](#run-locally)
+  - [Environment Variables](#environment-variables)
+  - [Firebase Setup (one-time)](#firebase-setup-one-time)
+  - [Auth Model](#auth-model)
+  - [How to Test](#how-to-test)
+  - [Admin Panel](#admin-panel)
+  - [Google Sheets Sync](#google-sheets-sync)
+  - [Known Limitations](#known-limitations)
 
 ---
 
