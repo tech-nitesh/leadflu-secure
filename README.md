@@ -1,6 +1,5 @@
 # LeadFlu — Editor Gigs
 
-
 A mobile-first lead management platform for video editors and freelancers. Admins
 publish client gigs ("leads") for video editing work, editors browse/search them,
 and the platform gates contact details behind a FREE/PRO access model. PRO access
